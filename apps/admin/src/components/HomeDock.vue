@@ -6,6 +6,7 @@ import SegControl from "./SegControl.vue";
 import Skeleton from "./Skeleton.vue";
 import TimePicker from "./TimePicker.vue";
 import { overlay } from "../lib/chrome";
+import { useDockFold } from "../lib/use-dock-fold";
 import { useSlidingPill } from "../lib/use-sliding-pill";
 import type { useHomeBoard } from "../lib/use-home-board";
 
@@ -18,6 +19,7 @@ export default defineComponent({
     board: { type: Object as PropType<Board>, required: true },
   },
   setup(props) {
+    const { foldable, folded, toggle } = useDockFold();
     const dock = ref<HTMLElement | null>(null);
     let dockRo: ResizeObserver | undefined;
     const carrierIndex = () => props.board.carriers.value.findIndex((item) => item.id === props.board.carrierId.value);
@@ -63,6 +65,9 @@ export default defineComponent({
 
     return {
       ...props.board,
+      foldable,
+      folded,
+      toggle,
       dock,
       carrierRail: carrierPill.rail,
       carrierButtons: carrierPill.buttons,
@@ -77,10 +82,24 @@ export default defineComponent({
 </script>
 
 <template>
-  <aside ref="dock" class="dock" aria-label="발송 추가">
-    <p class="caption dock-label">{{ board ? composeLabel : "불러오는 중" }}</p>
-    <Skeleton v-if="!board" variant="pills" :rows="3" />
-    <template v-else>
+  <aside ref="dock" class="dock" :class="{ folded: foldable && folded }" aria-label="발송 추가">
+    <button
+      v-if="foldable"
+      class="dock-toggle"
+      type="button"
+      :aria-expanded="!folded"
+      aria-controls="dock-fields"
+      @click="toggle"
+    >
+      <span class="dock-label" :class="folded ? 'dock-name' : 'caption'">
+        {{ folded ? "발송 등록" : board ? composeLabel : "불러오는 중" }}
+      </span>
+      <span>{{ folded ? "펼치기" : "접기" }}</span>
+    </button>
+    <p v-else class="caption dock-label">{{ board ? composeLabel : "불러오는 중" }}</p>
+    <Skeleton v-if="!board && !(foldable && folded)" variant="pills" :rows="3" />
+    <template v-else-if="!foldable || !folded">
+      <div id="dock-fields" class="dock-fields">
       <div class="dock-search">
         <button
           id="company-search"
@@ -138,6 +157,7 @@ export default defineComponent({
       >
         등록
       </button>
+      </div>
     </template>
   </aside>
   <CompanyPicker :open="pickerOpen" @close="pickerOpen = false" @pick="pickCompany" />

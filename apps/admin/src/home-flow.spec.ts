@@ -71,4 +71,31 @@ describe("home register flow", () => {
     }));
     home.unmount();
   });
+
+  it("lets a phone fold the register form", async () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: String(query).includes("max-width"),
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }));
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: "/", component: HomeView }],
+    });
+    await router.push("/");
+    await router.isReady();
+    const home = mount(HomeView, { global: { plugins: [router] } });
+    await flushPromises();
+    const fold = home.get("[aria-controls='dock-fields']");
+    expect(fold.attributes("aria-expanded")).toBe("true");
+    expect(fold.text()).toContain("접기");
+    expect(home.get("[aria-label='발송 등록']").exists()).toBe(true);
+    await fold.trigger("click");
+    expect(fold.attributes("aria-expanded")).toBe("false");
+    expect(fold.text()).toContain("발송 등록");
+    expect(fold.text()).toContain("펼치기");
+    expect(home.find("[aria-label='발송 등록']").exists()).toBe(false);
+    home.unmount();
+    vi.unstubAllGlobals();
+  });
 });

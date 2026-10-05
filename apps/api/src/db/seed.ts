@@ -1,3 +1,4 @@
+import { DEFAULT_CARRIERS } from "@nuri/shared";
 import { eq } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { hashPassword, PASSWORD_MIN } from "../domain/password";
@@ -5,19 +6,13 @@ import { createDb } from "./drizzle";
 import { loadEnv } from "./env";
 import { carriers, invites, users } from "./schema";
 
-const SEED_CARRIERS = [
-  { name: "CJ", sortOrder: 0 },
-  { name: "경기택배", sortOrder: 1 },
-  { name: "퀵발송", sortOrder: 2 },
-];
-
 const run = async () => {
   loadEnv();
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL required");
   const { client, db } = createDb(url);
 
-  for (const row of SEED_CARRIERS) {
+  for (const row of DEFAULT_CARRIERS) {
     const found = await db.select().from(carriers).where(eq(carriers.name, row.name));
     if (found.length === 0) await db.insert(carriers).values(row);
   }

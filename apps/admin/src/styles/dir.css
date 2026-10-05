@@ -151,6 +151,7 @@
 
 .dir-page .dir-pager {
   flex: none;
+  min-height: 64px;
   margin-top: auto;
   padding-inline: var(--dir-gutter);
 }
@@ -190,8 +191,9 @@
 .dir-sheet {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   background: none;
   border: 0;
   box-shadow: none;

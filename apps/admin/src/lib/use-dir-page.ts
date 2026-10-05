@@ -1,5 +1,5 @@
 import { nextTick, onActivated, onDeactivated, onMounted, onUnmounted, ref } from "vue";
-import { fitListSize } from "./fit-list";
+import { fitListSize, pageAfterFit } from "./fit-list";
 import { usePrompt, useToast } from "./chrome";
 
 export const useDirPage = (row = 46, chrome = 0) => {
@@ -19,10 +19,12 @@ export const useDirPage = (row = 46, chrome = 0) => {
 
   const measure = () => {
     const box = viewport.value;
-    const well = box?.querySelector<HTMLElement>(".dir-swap");
-    const next = fitListSize(well ?? box, row, well ? 0 : chrome);
+    if (!box || box.clientHeight <= 0) return false;
+    const next = fitListSize(box, row, chrome);
     if (next === pageSize.value) return false;
+    const prev = pageSize.value;
     pageSize.value = next;
+    page.value = pageAfterFit(page.value, prev, next);
     return true;
   };
 

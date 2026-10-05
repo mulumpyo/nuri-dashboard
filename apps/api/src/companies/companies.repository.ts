@@ -19,22 +19,18 @@ export class CompaniesRepository {
   async list(q: string, page: number, limit: number) {
     const term = q.replace(/[%_\\]/g, "").trim();
     const where = term ? sql`${companies.name} ilike ${"%" + term + "%"}` : undefined;
-    const offset = (page - 1) * limit;
-    const [items, totals] = await Promise.all([
-      this.db
-        .select()
-        .from(companies)
-        .where(where)
-        .orderBy(asc(companies.name))
-        .limit(limit)
-        .offset(offset),
-      this.db
-        .select({ total: count() })
-        .from(companies)
-        .where(where),
-    ]);
+    const totals = await this.db.select({ total: count() }).from(companies).where(where);
     const total = Number(totals[0]?.total ?? 0);
-    return { items, total, page, limit, pages: Math.max(1, Math.ceil(total / limit)) };
+    const pages = Math.max(1, Math.ceil(total / limit));
+    const current = Math.min(page, pages);
+    const items = await this.db
+      .select()
+      .from(companies)
+      .where(where)
+      .orderBy(asc(companies.name))
+      .limit(limit)
+      .offset((current - 1) * limit);
+    return { items, total, page: current, limit, pages };
   }
 
   create(name: string) {

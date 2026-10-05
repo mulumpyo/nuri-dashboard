@@ -1,7 +1,8 @@
 import { CallHandler, ExecutionContext, Inject, Injectable, NestInterceptor } from "@nestjs/common";
 import { deviceTag } from "@nuri/shared";
 import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
-import { Observable, tap } from "rxjs";
+import { lastValueFrom, of, type Observable } from "rxjs";
+import { AuthRepository } from "../auth/auth.repository";
 import { DB } from "../db/db.module";
 import type { Database } from "../db/drizzle";
 import { auditEvents, carriers, companies, displayDevices, holidays, invites, shipments, users } from "../db/schema";
@@ -49,6 +50,7 @@ type AuditReq = {
     totpRequired?: boolean;
     token?: string;
     code?: string;
+    challengeKey?: string;
   };
 };
 
@@ -168,7 +170,10 @@ const clamp = (value: number, min: number, max: number, fallback: number) =>
 
 @Injectable()
 export class ActivityService {
-  constructor(@Inject(DB) private readonly db: Database) {}
+  constructor(
+    @Inject(DB) private readonly db: Database,
+    private readonly tokens: AuthRepository,
+  ) {}
 
   async record(item: Omit<ActivityItem, "at"> & { at?: string }) {
     await this.db.insert(auditEvents).values({
@@ -238,7 +243,10 @@ export class ActivityService {
     const kind = kindFor(method, path);
     const actorEmail = await this.emailOf(req.user?.sub);
     const detail = await this.subject(method, path, body);
-    const email = (kind === "login" ? String(body.email ?? "").trim().toLowerCase() : "") || actorEmail || detailEmail(path, body, detail);
+    const email =
+      (kind === "login" ? String(body.email ?? "").trim().toLowerCase() || detail : "") ||
+      actorEmail ||
+      detailEmail(path, body, detail);
     return {
       kind,
       email,
@@ -313,10 +321,11 @@ export class ActivityService {
     if (key === "DELETE /api/auth/users/:id") return this.emailOf(id);
     if (key === "POST /api/devices/:id/revoke") return this.deviceLabel(id);
     if (key === "PATCH /api/auth/security") return body.totpRequired ? "인증 앱" : "비밀번호";
-    if (key === "POST /api/auth/register" || key === "POST /api/auth/recovery/start") {
-      return this.inviteEmail(String(body.token ?? ""));
+    if (key === "POST /api/auth/register") return this.inviteEmail(String(body.token ?? ""));
+    if (key === "POST /api/auth/recovery/start") return this.recoveryEmail(String(body.token ?? ""));
+    if (key === "POST /api/auth/register/verify" || key === "POST /api/auth/login/verify") {
+      return String(body.email ?? "").trim().toLowerCase() || this.challengeEmail(String(body.challengeKey ?? ""));
     }
-    if (key === "POST /api/auth/login/verify") return String(body.email ?? "").trim().toLowerCase();
     return "";
   }
 
@@ -360,6 +369,24 @@ export class ActivityService {
     const [row] = await this.db.select({ email: invites.email }).from(invites).where(eq(invites.token, token)).limit(1);
     return row?.email ?? "";
   }
+
+  private async recoveryEmail(token: string) {
+    if (!token) return "";
+    const userId = await this.tokens.getChallenge(`rec:${token}`);
+    return this.emailOf(userId ?? undefined);
+  }
+
+  private async challengeEmail(challengeKey: string) {
+    if (!challengeKey) return "";
+    const raw = await this.tokens.getChallenge(challengeKey);
+    if (!raw) return "";
+    try {
+      const ctx = JSON.parse(raw) as { email?: string };
+      return String(ctx.email ?? "").trim().toLowerCase();
+    } catch {
+      return "";
+    }
+  }
 }
 
 const resultId = (value: unknown) => {
@@ -385,15 +412,13 @@ export class ActivityInterceptor implements NestInterceptor {
     const path = req.originalUrl ?? req.url ?? "";
     if (skipPath(path)) return next.handle();
     const preview = await this.activity.preview(req);
-    return next.handle().pipe(
-      tap({
-        next: (result) => {
-          void this.activity.commit(req, preview, true, result);
-        },
-        error: () => {
-          void this.activity.commit(req, preview, false);
-        },
-      }),
-    );
+    try {
+      const result = await lastValueFrom(next.handle());
+      await this.activity.commit(req, preview, true, result).catch(() => undefined);
+      return of(result);
+    } catch (err) {
+      await this.activity.commit(req, preview, false).catch(() => undefined);
+      throw err;
+    }
   }
 }

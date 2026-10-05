@@ -209,6 +209,7 @@ describe("admin a11y render", () => {
     expect(home.get("[role='list']").exists()).toBe(true);
     expect(home.get("[aria-label='업체 선택']").exists()).toBe(true);
     expect(home.get("[aria-label='택배사 선택']").exists()).toBe(true);
+    expect(home.find("[aria-controls='dock-fields']").exists()).toBe(false);
     expect(home.get("[aria-label='발송 등록']").text()).toBe("등록");
     expect(home.get(".card-grid .company-card").exists()).toBe(true);
     expect(home.get(".card-grid .company-card strong").attributes("title")).toBe("한빛");

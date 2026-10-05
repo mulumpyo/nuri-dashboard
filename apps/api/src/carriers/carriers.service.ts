@@ -1,14 +1,19 @@
-import { Injectable } from "@nestjs/common";
-import { notFound } from "../common/errors";
+import { Injectable, OnModuleInit } from "@nestjs/common";
+import { DEFAULT_CARRIERS, isDefaultCarrier } from "@nuri/shared";
+import { conflict, notFound } from "../common/errors";
 import { EventsService } from "../events/events.service";
 import { CarriersRepository } from "./carriers.repository";
 
 @Injectable()
-export class CarriersService {
+export class CarriersService implements OnModuleInit {
   constructor(
     private readonly repo: CarriersRepository,
     private readonly events: EventsService,
   ) {}
+
+  onModuleInit() {
+    return this.repo.ensureDefaults(DEFAULT_CARRIERS);
+  }
 
   list() {
     return this.repo.list();
@@ -32,6 +37,9 @@ export class CarriersService {
   }
 
   async remove(id: string) {
+    const current = await this.repo.find(id);
+    if (!current) throw notFound("CARRIER_NOT_FOUND", "택배사를 찾지 못했어요");
+    if (isDefaultCarrier(current.name)) throw conflict("CARRIER_DEFAULT", "기본 택배사는 지울 수 없어요");
     const row = await this.repo.remove(id);
     if (!row) throw notFound("CARRIER_NOT_FOUND", "택배사를 찾지 못했어요");
     this.events.publish({ type: "shipment.changed" });
