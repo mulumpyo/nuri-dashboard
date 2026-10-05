@@ -20,6 +20,12 @@ describe("admin a11y document", () => {
     expect(nginx).toMatch(/X-Content-Type-Options nosniff/);
   });
 
+  it("does not fall back missing admin assets to html", () => {
+    const nginx = read("../nginx.conf");
+    expect(nginx).toMatch(/location \/assets\//);
+    expect(nginx).toMatch(/try_files \$uri =404/);
+  });
+
   it("keeps list and card gutters in the owning stylesheets", () => {
     const dirCss = read("styles/dir.css");
     const home = read("styles/home.css");
