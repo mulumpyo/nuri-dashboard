@@ -1,6 +1,5 @@
 # deploy 브랜치에 푸시하거나 직접 실행하면
 # 코드 검사 → 이미지 빌드 → 서버 배포 순서로 돌아가요.
-# 서버는 erd-studio와 같은 Ubuntu 24.04 Oracle ARM(aarch64) 이에요.
 name: 배포
 
 on:
@@ -10,7 +9,6 @@ on:
   workflow_dispatch:
 
 # 같은 브랜치 배포가 겹치면, 앞 작업이 끝날 때까지 기다려요.
-# 그룹 이름이 저장소마다라 erd-studio 배포와는 겹치지 않아요.
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
@@ -94,7 +92,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    # Oracle ARM에서 돌아가요. erd-studio와 같은 빌드 도구를 써요.
     strategy:
       matrix:
         include:
@@ -165,7 +162,6 @@ jobs:
           overwrite: true
 
       # GitHub Secrets로 .env를 만들고, 새 이미지로 컨테이너를 다시 띄워요.
-      # 호스트 포트는 8083만 열어요. erd-studio 8082/3001/3030과는 겹치지 않아요.
       - name: 환경 변수 작성 후 컨테이너 재시작
         uses: appleboy/ssh-action@v1.2.0
         env:
@@ -197,34 +193,51 @@ jobs:
             set -eu
             cd "$DEPLOY_DIR"
             umask 077
-            cat > .env <<EOF
-            NODE_ENV=production
-            TZ=Asia/Seoul
-            PUBLIC_ORIGIN=$SITE_URL
-            COOKIE_SECURE=true
-            JWT_SECRET=$JWT_SECRET
-            RESEND_API_KEY=$RESEND_API_KEY
-            POSTGRES_USER=nuri
-            POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-            POSTGRES_DB=nuri
-            DATABASE_URL=postgres://nuri:${POSTGRES_PASSWORD}@nuri-postgres:5432/nuri
-            REDIS_URL=redis://nuri-redis:6379
-            NURI_HTTP_PORT=8083
-            API_IMAGE=$IMAGE_PREFIX/api:$IMAGE_TAG
-            ADMIN_IMAGE=$IMAGE_PREFIX/admin:$IMAGE_TAG
-            DASHBOARD_IMAGE=$IMAGE_PREFIX/dashboard:$IMAGE_TAG
-            SMTP_HOST=$SMTP_HOST
-            SMTP_PORT=$SMTP_PORT
-            SMTP_USER=$SMTP_USER
-            SMTP_PASS=$SMTP_PASS
-            SMTP_SECURE=$SMTP_SECURE
-            SMTP_FROM="$SMTP_FROM"
-            BOOTSTRAP_ADMIN_EMAIL=$BOOTSTRAP_ADMIN_EMAIL
-            BOOTSTRAP_ADMIN_PASSWORD=$BOOTSTRAP_ADMIN_PASSWORD
-            DATA_GO_KR_SERVICE_KEY=$DATA_GO_KR_SERVICE_KEY
-            TOTP_ISSUER=누리디에스엠
-            PORT=3000
-            EOF
+            add_env() {
+              key=$1
+              val=${2-}
+              if [ "${#val}" -ge 2 ]; then
+                first=${val%"${val#?}"}
+                last=${val#"${val%?}"}
+                if [ "$first" = \" ] && [ "$last" = \" ]; then
+                  val=${val#\"}
+                  val=${val%\"}
+                elif [ "$first" = "'" ] && [ "$last" = "'" ]; then
+                  val=${val#\'}
+                  val=${val%\'}
+                fi
+              fi
+              val=$(printf '%s' "$val" | sed -e 's/\$/$$/g' -e "s/'/'\"'\"'/g")
+              printf "%s='%s'\n" "$key" "$val"
+            }
+            {
+              add_env NODE_ENV production
+              add_env TZ Asia/Seoul
+              add_env PUBLIC_ORIGIN "$SITE_URL"
+              add_env COOKIE_SECURE true
+              add_env JWT_SECRET "$JWT_SECRET"
+              add_env RESEND_API_KEY "$RESEND_API_KEY"
+              add_env POSTGRES_USER nuri
+              add_env POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
+              add_env POSTGRES_DB nuri
+              add_env DATABASE_URL "postgres://nuri:${POSTGRES_PASSWORD}@nuri-postgres:5432/nuri"
+              add_env REDIS_URL redis://nuri-redis:6379
+              add_env NURI_HTTP_PORT 8083
+              add_env API_IMAGE "$IMAGE_PREFIX/api:$IMAGE_TAG"
+              add_env ADMIN_IMAGE "$IMAGE_PREFIX/admin:$IMAGE_TAG"
+              add_env DASHBOARD_IMAGE "$IMAGE_PREFIX/dashboard:$IMAGE_TAG"
+              add_env SMTP_HOST "$SMTP_HOST"
+              add_env SMTP_PORT "$SMTP_PORT"
+              add_env SMTP_USER "$SMTP_USER"
+              add_env SMTP_PASS "$SMTP_PASS"
+              add_env SMTP_SECURE "$SMTP_SECURE"
+              add_env SMTP_FROM "$SMTP_FROM"
+              add_env BOOTSTRAP_ADMIN_EMAIL "$BOOTSTRAP_ADMIN_EMAIL"
+              add_env BOOTSTRAP_ADMIN_PASSWORD "$BOOTSTRAP_ADMIN_PASSWORD"
+              add_env DATA_GO_KR_SERVICE_KEY "$DATA_GO_KR_SERVICE_KEY"
+              add_env TOTP_ISSUER 누리디에스엠
+              add_env PORT 3000
+            } > .env
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             docker compose -p nuri-dashboard -f compose.prod.yaml pull
             docker compose -p nuri-dashboard -f compose.prod.yaml up -d --remove-orphans
