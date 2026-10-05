@@ -1,0 +1,78 @@
+# PR·main 푸시마다 타입·유닛·e2e·빌드를 돌려요.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: 코드 검사
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nuri
+          POSTGRES_PASSWORD: nuri
+          POSTGRES_DB: nuri
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U nuri -d nuri"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://nuri:nuri@localhost:5432/nuri
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: nuri-ci-jwt-secret-not-for-production
+      PUBLIC_ORIGIN: http://localhost:5173
+      TOTP_ISSUER: 누리디에스엠
+      COOKIE_SECURE: "false"
+      TZ: Asia/Seoul
+      # localhost HTTP e2e. Secure 쿠키는 auth.session.spec에서 COOKIE_SECURE=true를 검사합니다.
+    steps:
+      - name: 저장소 코드 내려받기
+        uses: actions/checkout@v5
+
+      - name: pnpm 설치
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.5.2
+
+      - name: Node.js 22 설치
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 패키지 설치 (lockfile 일치 확인)
+        run: pnpm install --frozen-lockfile
+
+      - name: 타입 검사
+        run: pnpm typecheck
+
+      - name: 단위 테스트
+        run: pnpm test
+
+      - name: 마이그레이션
+        run: pnpm --filter @nuri/api db:migrate
+
+      - name: e2e 테스트
+        run: pnpm --filter @nuri/api test:e2e
+
+      - name: 빌드
+        run: pnpm build

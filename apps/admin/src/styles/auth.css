@@ -1,0 +1,135 @@
+/* 로그인·초대·복구 */
+.center {
+  min-height: 100dvh;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  align-content: safe center;
+  justify-items: center;
+  padding: 24px;
+}
+
+.auth-card {
+  width: min(420px, 100%);
+  padding: 32px 24px 24px;
+}
+
+.auth-extra .field-shell:first-child {
+  margin-top: 0;
+}
+
+.auth-lead {
+  margin: 8px 0 0;
+}
+
+.auth-card:not(:has(.field-shell)):not(:has(.qr)) .action.wide {
+  margin-top: 28px;
+}
+
+.field-shell {
+  margin: 20px 0 16px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.auth-back {
+  width: 100%;
+  margin-top: 6px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.auth-sub {
+  width: 100%;
+  margin-top: 6px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+
+.auth-msg {
+  margin: 14px 0 0;
+  text-align: center;
+}
+
+.qr {
+  display: block;
+  width: 220px;
+  height: 220px;
+  margin: 0 auto 12px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.secret {
+  font: var(--caption);
+  word-break: break-all;
+  text-align: center;
+  margin: 0 0 12px;
+}
+
+
+.page-auth-enter-active,
+.page-auth-leave-active {
+  transition: transform var(--settle), opacity 260ms ease;
+}
+
+.page-auth-enter-from {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.page-auth-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.auth-step-enter-active {
+  transition: transform var(--snappy), opacity 220ms ease;
+}
+
+.auth-step-leave-active {
+  transition: opacity 160ms ease;
+}
+
+.auth-step-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.auth-step-leave-to {
+  opacity: 0;
+}
+
+@media (max-width: 640px) {
+  .auth-card {
+    padding: 22px 18px;
+  }
+
+  .center {
+    padding: max(20px, env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .qr {
+    width: min(200px, 70vw);
+    height: auto;
+    aspect-ratio: 1;
+  }
+}
+
+@media (min-width: 1024px) {
+  .center {
+    padding: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-auth-enter-active,
+  .page-auth-leave-active,
+  .auth-step-enter-active,
+  .auth-step-leave-active {
+    transition: none;
+  }
+}

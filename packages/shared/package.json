@@ -1,0 +1,26 @@
+{
+  "name": "@nuri/shared",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "require": "./dist/index.js",
+      "default": "./src/index.ts"
+    },
+    "./sse": "./src/sse.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.14.5",
+    "typescript": "^5.8.3",
+    "vitest": "3.2.4"
+  }
+}

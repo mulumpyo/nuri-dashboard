@@ -1,0 +1,10 @@
+{
+  "rootDir": "..",
+  "testRegex": ".*\\.spec\\.ts$",
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "transform": { "^.+\\.ts$": "ts-jest" },
+  "testEnvironment": "node",
+  "moduleNameMapper": {
+    "^@nuri/shared$": "<rootDir>/../../packages/shared/src/index.ts"
+  }
+}

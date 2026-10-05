@@ -1,0 +1,19 @@
+{
+  "name": "nuri-dashboard",
+  "private": true,
+  "packageManager": "pnpm@11.5.2",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "test:e2e": "turbo test:e2e",
+    "db:generate": "pnpm --filter @nuri/api db:generate",
+    "db:migrate": "pnpm --filter @nuri/api db:migrate",
+    "db:seed": "pnpm --filter @nuri/api db:seed"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  }
+}

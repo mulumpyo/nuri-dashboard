@@ -1,0 +1,404 @@
+/* 설정: iOS 그룹형 목록 */
+.set-page {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 32px;
+  overflow: auto;
+}
+
+.set-page .page-head {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 0;
+}
+
+.set-page .page-head.has-back {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 6px;
+}
+
+.set-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 0 -10px;
+  padding: 8px 2px 8px 10px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  flex: none;
+  line-height: 0;
+}
+
+.set-back .chev {
+  width: 10px;
+  height: 18px;
+}
+
+.set-back .chev path {
+  stroke-width: 1.75;
+}
+
+.set-group {
+  display: grid;
+  gap: 6px;
+  margin-inline: var(--page-x);
+}
+
+.set-group .pager {
+  margin-top: 0;
+}
+
+.set-head,
+.set-group > h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 26px;
+  margin: 0;
+  padding-inline: 16px;
+  font: 400 13px / 1.2 var(--font);
+  letter-spacing: -0.01em;
+  color: var(--muted);
+}
+
+.set-head h3 {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.set-foot {
+  margin: 0;
+  padding-inline: 16px;
+  font: var(--caption);
+  color: var(--muted);
+}
+
+.set-card {
+  display: grid;
+  background: var(--surface);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.set-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 16px;
+}
+
+button.set-row {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  appearance: none;
+}
+
+.set-row + .set-row::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  pointer-events: none;
+}
+
+.set-label {
+  flex: none;
+  min-width: 3.2em;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.022em;
+  line-height: 1.2;
+}
+
+.set-copy .set-tag {
+  font: 600 17px / 1.2 var(--font);
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.set-empty {
+  justify-content: flex-start;
+  margin: 0;
+  color: var(--muted);
+  font-size: 17px;
+}
+
+.set-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.set-copy strong {
+  overflow-wrap: anywhere;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.022em;
+}
+
+.set-sub {
+  color: var(--muted);
+  font: var(--caption);
+}
+
+.set-action,
+.set-danger {
+  flex: none;
+  min-width: 2.75em;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  font: 400 17px / 1.2 var(--font);
+  letter-spacing: -0.022em;
+  text-align: right;
+}
+
+.set-compose {
+  display: grid;
+  grid-template-columns: 3.2em minmax(0, 1fr) 2.75em;
+  justify-content: stretch;
+}
+
+.set-compose .set-label {
+  min-width: 0;
+}
+
+.set-compose .set-field {
+  width: auto;
+  min-width: 0;
+  padding-inline-end: 10px;
+}
+
+.set-action {
+  color: var(--accent);
+}
+
+.set-danger {
+  color: var(--danger);
+}
+
+.set-head .set-action {
+  min-height: 26px;
+  font-size: 13px;
+}
+
+.set-action:disabled {
+  opacity: 0.34;
+}
+
+.set-row .cal,
+.set-row .cal-slot {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+  flex: 1;
+}
+
+.set-value,
+.set-field {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  font: 400 17px / 1.2 var(--font);
+  letter-spacing: -0.022em;
+  color: var(--muted);
+}
+
+.set-value {
+  text-align: right;
+  cursor: pointer;
+}
+
+.set-field {
+  flex: 1;
+  color: var(--ink);
+  text-align: right;
+}
+
+.set-field::placeholder {
+  color: color-mix(in srgb, var(--muted) 72%, transparent);
+}
+
+.set-switch {
+  position: relative;
+  flex: none;
+  width: 51px;
+  height: 31px;
+  min-height: 31px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #e9e9ea;
+  transition: background var(--snappy);
+}
+
+.set-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: transform var(--snappy);
+}
+
+.set-switch[aria-checked="true"] {
+  background: #34c759;
+}
+
+.set-switch[aria-checked="true"]::after {
+  transform: translateX(20px);
+}
+
+.set-more,
+.set-nav {
+  color: var(--ink);
+  font: 400 17px / 1.2 var(--font);
+  letter-spacing: -0.022em;
+  text-align: left;
+}
+
+.set-more {
+  color: var(--accent);
+}
+
+.set-more-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.set-more .chev,
+.set-nav .chev {
+  width: 7px;
+  height: 12px;
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+
+.set-holiday-list {
+  max-height: min(56dvh, 420px);
+  overflow: auto;
+}
+
+.set-tabs {
+  margin: 6px 10px;
+}
+
+.set-search {
+  text-align: left;
+}
+
+.set-page.set-logs {
+  min-height: 0;
+  overflow: hidden;
+  gap: 16px;
+}
+
+.set-logs .logs-well {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.set-logs .logs-well .set-card {
+  align-content: start;
+}
+
+.set-logs .logs-pager {
+  flex: none;
+  margin-inline: var(--page-x);
+}
+
+.set-logs .logs-pager .pager {
+  margin-top: 0;
+}
+
+.set-log {
+  height: 64px;
+  min-height: 64px;
+  align-items: center;
+}
+
+.set-log .set-copy {
+  width: 100%;
+}
+
+.set-log .set-copy strong,
+.set-log .set-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.set-out {
+  width: 100%;
+  justify-content: center;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--danger);
+  font: 400 17px / 1.2 var(--font);
+  letter-spacing: -0.022em;
+}
+
+.theme-dark .set-switch {
+  background: #39393d;
+}
+
+.theme-dark .set-switch[aria-checked="true"] {
+  background: #30d158;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .set-action:hover:not(:disabled),
+  .set-danger:hover,
+  .set-head .set-action:hover,
+  .set-more:hover,
+  .set-nav:hover {
+    opacity: 0.64;
+  }
+
+  .set-out:hover {
+    background: color-mix(in srgb, var(--ink) 4%, var(--surface));
+  }
+}
+
+@media (max-width: 640px) {
+  .set-page {
+    gap: 28px;
+  }
+
+  .set-page.set-logs {
+    gap: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .set-switch,
+  .set-switch::after {
+    transition: none;
+  }
+}

@@ -1,0 +1,8 @@
+/* 화면별 스타일 */
+@import "./styles/chrome.css";
+@import "./styles/cal.css";
+@import "./styles/dialog.css";
+@import "./styles/home.css";
+@import "./styles/settings.css";
+@import "./styles/dir.css";
+@import "./styles/auth.css";

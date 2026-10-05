@@ -1,0 +1,44 @@
+# 로컬 개발 전용. 서버의 3000/5173/3306/8082와 겹치지 않게
+# Postgres 15432, Redis 16379 만 127.0.0.1에 엽니다.
+name: nuri-dashboard-dev
+
+services:
+  postgres:
+    container_name: nuri-dev-postgres
+    image: postgres:16-alpine
+    ports:
+      - "127.0.0.1:15432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nuri}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nuri}
+      POSTGRES_DB: ${POSTGRES_DB:-nuri}
+      TZ: Asia/Seoul
+    volumes:
+      - nuri_dev_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nuri} -d ${POSTGRES_DB:-nuri}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    container_name: nuri-dev-redis
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:16379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - nuri_dev_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  nuri_dev_pgdata:
+    name: nuri-dashboard-dev-pgdata
+  nuri_dev_redis:
+    name: nuri-dashboard-dev-redis

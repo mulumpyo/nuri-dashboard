@@ -1,0 +1,222 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font: var(--body);
+  color: var(--ink);
+  background: var(--bg);
+  font-family: var(--font);
+  letter-spacing: -0.02em;
+  word-break: keep-all;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+}
+
+body {
+  background: var(--bg);
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ink) 28%, transparent) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 999px;
+}
+
+:hover::-webkit-scrollbar-thumb,
+:focus-within::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ink) 32%, transparent);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: color-mix(in srgb, var(--ink) 42%, transparent);
+  background-clip: padding-box;
+}
+
+.theme-dark body,
+body.theme-dark {
+  background:
+    radial-gradient(1000px 600px at 20% -20%, rgba(80, 140, 255, 0.18), transparent 50%),
+    radial-gradient(800px 500px at 100% 0%, rgba(100, 210, 255, 0.1), transparent 46%),
+    var(--bg);
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(24px) saturate(1.35);
+  -webkit-backdrop-filter: blur(24px) saturate(1.35);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  box-shadow:
+    0 10px 28px color-mix(in srgb, var(--ink) 8%, transparent),
+    inset 0 1px 0 var(--spec);
+}
+
+.glass-ultra {
+  background: var(--glass-ultra, var(--glass-thin));
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border: 1px solid var(--stroke);
+  border-radius: var(--field-radius);
+}
+
+.glass-thin {
+  background: var(--glass-thin);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid var(--stroke);
+  border-radius: var(--field-radius);
+  box-shadow: inset 0 1px 0 var(--spec);
+}
+
+.pressable {
+  min-height: var(--touch);
+  transition: transform var(--snappy), filter var(--snappy);
+}
+
+.pressable:active {
+  transform: scale(0.97);
+  filter: brightness(1.06);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pressable:hover {
+    filter: brightness(1.05);
+  }
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.display {
+  font: var(--display);
+  letter-spacing: -0.032em;
+}
+
+.title {
+  font: var(--title);
+  letter-spacing: -0.03em;
+}
+
+.caption {
+  font: var(--caption);
+  color: var(--muted);
+  letter-spacing: -0.014em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  z-index: 200;
+  background: var(--ink);
+  color: var(--bg);
+  text-decoration: none;
+  border-radius: 12px;
+}
+
+.skip:focus,
+.skip:focus-visible {
+  width: auto;
+  height: auto;
+  margin: 0;
+  clip: auto;
+  overflow: visible;
+  white-space: nowrap;
+  left: 12px;
+  top: 12px;
+  padding: 10px 14px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.nav-item {
+  border: 0;
+  background: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.nav-item:hover,
+.nav-item.on,
+.nav-item[aria-current="page"] {
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  color: var(--ink);
+}
+
+@media (max-width: 640px) {
+  .glass {
+    backdrop-filter: blur(18px) saturate(1.25);
+    -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  }
+}

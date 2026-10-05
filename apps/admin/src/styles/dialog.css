@@ -1,0 +1,356 @@
+/* 토스트·확인·업체 선택 */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 80;
+  max-width: min(360px, calc(100% - 32px));
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: rgba(17, 19, 24, 0.88);
+  color: #fff;
+  font: var(--caption);
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 10px 28px rgba(17, 19, 24, 0.22);
+  animation: toast-up var(--snappy);
+  pointer-events: none;
+}
+
+.toast-over {
+  bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+@keyframes toast-up {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.confirm-root {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(17, 19, 24, 0.28);
+  backdrop-filter: blur(8px) saturate(1.1);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
+}
+
+.confirm-card {
+  width: min(340px, 100%);
+  padding: 22px 22px 16px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 18px 48px rgba(17, 19, 24, 0.16);
+  animation: cal-in var(--soft);
+}
+
+.picker-card {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.picker-card.picker-browse {
+  height: min(68dvh, 560px);
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+}
+
+.picker-head,
+.form-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.picker-head .title,
+.form-head .title {
+  margin: 0;
+  text-align: center;
+}
+
+.picker-head .dialog-btn:first-child,
+.form-head .dialog-btn:first-child {
+  justify-self: start;
+}
+
+.picker-head-end,
+.picker-head .dialog-btn.on,
+.form-head .dialog-btn.on {
+  justify-self: end;
+}
+
+.picker-head .dialog-btn,
+.form-head .dialog-btn {
+  min-height: 32px;
+  padding: 0 2px;
+  background: none;
+  color: var(--accent);
+  font-weight: 400;
+}
+
+.picker-head .dialog-btn.on,
+.form-head .dialog-btn.on {
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.picker-head .dialog-btn:hover:not(:disabled),
+.form-head .dialog-btn:hover:not(:disabled),
+.picker-head .dialog-btn.on:hover:not(:disabled),
+.form-head .dialog-btn.on:hover:not(:disabled) {
+  background: none;
+  color: var(--accent);
+  filter: none;
+  opacity: 0.72;
+}
+
+.picker-card .search-field {
+  width: 100%;
+  margin: 0;
+}
+
+.picker-create {
+  display: grid;
+}
+
+.form-field {
+  display: grid;
+  gap: 6px;
+}
+
+.form-field .caption {
+  margin: 0;
+}
+
+.form-card {
+  padding-bottom: 22px;
+}
+
+.form-card .form-field {
+  margin-top: 16px;
+}
+
+.form-card .form-field .field-shell {
+  margin: 0;
+}
+
+.picker-swap {
+  position: relative;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.picker-list {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  overflow: hidden;
+}
+
+.picker-pager {
+  display: grid;
+  min-height: 52px;
+  align-content: start;
+}
+
+.picker-card .pager.compact {
+  margin-top: 0;
+}
+
+.picker-swap-enter-active,
+.picker-swap-leave-active {
+  transition: opacity 180ms ease;
+}
+
+.picker-swap-leave-active {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.picker-swap-enter-from,
+.picker-swap-leave-to {
+  opacity: 0;
+}
+
+.picker-item {
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+  font: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-item:hover,
+.picker-item:focus-visible {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.picker-item:active {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+.picker-empty {
+  margin: 0;
+  min-height: 100%;
+  display: grid;
+  align-content: center;
+}
+
+.picker-new {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  text-align: center;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.picker-new:hover,
+.picker-new:focus-visible {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.confirm-card .title,
+.confirm-card .caption {
+  word-break: keep-all;
+}
+
+.confirm-card .title {
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.confirm-card > .caption {
+  margin: 8px 0 0;
+}
+
+.confirm-actions {
+  justify-content: flex-end;
+  margin-top: 20px;
+  gap: 8px;
+}
+
+.dialog-btn {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: var(--caption);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.dialog-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.dialog-btn.on {
+  background: var(--accent);
+  color: #fff;
+}
+
+.dialog-btn.on:hover:not(:disabled) {
+  background: var(--accent);
+  filter: brightness(1.06);
+}
+
+.dialog-btn.danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.dialog-btn.danger:hover:not(:disabled) {
+  background: var(--danger);
+}
+
+.dialog-btn:disabled {
+  opacity: 0.4;
+}
+
+@media (max-width: 1023px) {
+  .toast {
+    bottom: calc(108px + env(safe-area-inset-bottom));
+  }
+
+  .toast-over {
+    bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .confirm-root {
+    padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    align-items: end;
+    justify-items: stretch;
+  }
+
+  .confirm-card {
+    width: 100%;
+  }
+
+  .picker-card {
+    max-height: min(82dvh, calc(100dvh - 24px - env(safe-area-inset-bottom)));
+    overflow: hidden;
+  }
+
+  .picker-card.picker-browse {
+    height: min(82dvh, calc(100dvh - 24px - env(safe-area-inset-bottom)));
+  }
+
+  .confirm-actions {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .confirm-actions .dialog-btn {
+    width: 100%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .toast,
+  .toast-over {
+    bottom: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+
+  .picker-swap-enter-active,
+  .picker-swap-leave-active {
+    transition: none;
+  }
+}
