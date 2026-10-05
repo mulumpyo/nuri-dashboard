@@ -33,4 +33,11 @@ describe("security headers", () => {
     expect(nginx).toMatch(/X-Forwarded-Proto \$scheme/);
     expect(nginx).not.toMatch(/X-Forwarded-Proto \$http_x_forwarded_proto/);
   });
+
+  it("resolves compose service names again after app containers restart", () => {
+    const nginx = readFileSync(join(__dirname, "../../../../deploy/nginx.conf"), "utf8");
+    expect(nginx).toMatch(/resolver 127\.0\.0\.11/);
+    expect(nginx).toMatch(/proxy_pass http:\/\/\$nuri_admin:80/);
+    expect(nginx).toMatch(/proxy_pass http:\/\/\$nuri_tv:80/);
+  });
 });
