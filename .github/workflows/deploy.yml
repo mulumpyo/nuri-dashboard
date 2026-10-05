@@ -241,6 +241,7 @@ jobs:
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             docker compose -p nuri-dashboard -f compose.prod.yaml pull
             docker compose -p nuri-dashboard -f compose.prod.yaml up -d --remove-orphans
+            docker compose -p nuri-dashboard -f compose.prod.yaml up -d --force-recreate --no-deps nginx
             docker compose -p nuri-dashboard -f compose.prod.yaml ps
             for i in $(seq 1 60); do
               curl -sf http://127.0.0.1:8083/api/health/ready && docker image prune -f && exit 0
