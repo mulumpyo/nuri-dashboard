@@ -30,7 +30,82 @@ describe("activity talk", () => {
 
   it("marks login paths", () => {
     expect(kindFor("POST", "/api/auth/login/verify")).toBe("login");
+    expect(kindFor("POST", "/api/auth/recovery/start")).toBe("login");
     expect(kindFor("POST", "/api/companies")).toBe("work");
+  });
+
+  it("names the account that reset a password", async () => {
+    const values = jest.fn().mockResolvedValue(undefined);
+    const getChallenge = jest.fn().mockResolvedValue("user-1");
+    const db = {
+      insert: jest.fn(() => ({ values })),
+      select: jest.fn((cols?: Record<string, unknown>) => ({
+        from: () => ({
+          where: () => ({
+            limit: jest.fn().mockResolvedValue(
+              cols && "email" in cols ? [{ email: "kim@nuri.test" }] : [{ role: "admin" }],
+            ),
+          }),
+        }),
+      })),
+    };
+    const service = new ActivityService(db as never, { getChallenge } as never);
+    const preview = await service.preview({
+      method: "POST",
+      originalUrl: "/api/auth/recovery/start",
+      headers: {},
+      body: { token: "tok" },
+    });
+    expect(preview.email).toBe("kim@nuri.test");
+    await service.commit(
+      { method: "POST", originalUrl: "/api/auth/recovery/start", headers: {} },
+      preview,
+      true,
+      { mode: "ready", status: "ok" },
+    );
+    expect(getChallenge).toHaveBeenCalledWith("rec:tok");
+    expect(values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: "kim@nuri.test",
+        actor: "관리자",
+        talk: "kim@nuri.test 비밀번호를 다시 만들고 들어왔어요",
+      }),
+    );
+  });
+
+  it("names a totp recovery from the challenge", async () => {
+    const values = jest.fn().mockResolvedValue(undefined);
+    const getChallenge = jest.fn().mockResolvedValue(JSON.stringify({ email: "kim@nuri.test" }));
+    const db = {
+      insert: jest.fn(() => ({ values })),
+      select: jest.fn(() => ({
+        from: () => ({
+          where: () => ({
+            limit: jest.fn().mockResolvedValue([{ role: "admin" }]),
+          }),
+        }),
+      })),
+    };
+    const service = new ActivityService(db as never, { getChallenge } as never);
+    const preview = await service.preview({
+      method: "POST",
+      originalUrl: "/api/auth/register/verify",
+      headers: {},
+      body: { challengeKey: "chal" },
+    });
+    expect(preview.email).toBe("kim@nuri.test");
+    await service.commit(
+      { method: "POST", originalUrl: "/api/auth/register/verify", headers: {} },
+      preview,
+      true,
+      { status: "ok" },
+    );
+    expect(values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: "kim@nuri.test",
+        talk: "kim@nuri.test 인증 앱을 등록하고 들어왔어요",
+      }),
+    );
   });
 
   it("keeps query strings out of the key", () => {
@@ -49,7 +124,7 @@ describe("activity talk", () => {
         }),
       })),
     };
-    const service = new ActivityService(db as never);
+    const service = new ActivityService(db as never, { getChallenge: jest.fn() } as never);
     await service.commit(
       { method: "POST", originalUrl: "/api/devices/approve", headers: {} },
       { kind: "work", email: "owner@nuri.test", detail: "", talk: "화면을 연결했어요", actor: "소유자" },
@@ -66,7 +141,9 @@ describe("activity talk", () => {
 
   it("skips enroll-only register writes", async () => {
     const values = jest.fn();
-    const service = new ActivityService({ insert: jest.fn(() => ({ values })) } as never);
+    const service = new ActivityService({ insert: jest.fn(() => ({ values })) } as never, {
+      getChallenge: jest.fn(),
+    } as never);
     await service.commit(
       { method: "POST", originalUrl: "/api/auth/register", headers: {} },
       { kind: "login", email: "kim@nuri.test", detail: "kim@nuri.test", talk: "초대를 수락하고 들어왔어요", actor: "손님" },
@@ -90,7 +167,7 @@ describe("activity talk", () => {
         }),
       })),
     };
-    const service = new ActivityService(db as never);
+    const service = new ActivityService(db as never, { getChallenge: jest.fn() } as never);
     await service.commit(
       { method: "POST", originalUrl: "/api/auth/login/verify", headers: {} },
       { kind: "login", email: "owner@nuri.test", detail: "owner@nuri.test", talk: "로그인했어요", actor: "손님" },
@@ -112,7 +189,7 @@ describe("activity talk", () => {
         }),
       })),
     };
-    const service = new ActivityService(db as never);
+    const service = new ActivityService(db as never, { getChallenge: jest.fn() } as never);
     await service.commit(
       { method: "POST", originalUrl: "/api/devices/claim", headers: {} },
       { kind: "work", email: "", detail: "", talk: "화면이 들어왔어요", actor: "손님" },

@@ -2,7 +2,7 @@
 import { defineComponent, nextTick, onUnmounted, ref, watch } from "vue";
 import { api } from "../api";
 import { useToast } from "../lib/chrome";
-import { fitListSize } from "../lib/fit-list";
+import { fitListSize, pageAfterFit } from "../lib/fit-list";
 import { trapTab } from "../lib/focus";
 import Pager from "./Pager.vue";
 import Skeleton from "./Skeleton.vue";
@@ -35,12 +35,19 @@ export default defineComponent({
     let viewportRo: ResizeObserver | undefined;
     let loadSeq = 0;
 
+    const afterPaint = () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+
     const measure = () => {
       const box = viewport.value;
       if (!box || box.clientHeight <= 0) return false;
       const next = fitListSize(box, 48, 0);
       if (next === pageSize.value) return false;
+      const prev = pageSize.value;
       pageSize.value = next;
+      page.value = pageAfterFit(page.value, prev, next);
       return true;
     };
 
@@ -169,6 +176,7 @@ export default defineComponent({
         newName.value = "";
         document.addEventListener("keydown", onKey, true);
         await nextTick();
+        await afterPaint();
         measure();
         watchViewport();
         await load(1);
@@ -183,6 +191,7 @@ export default defineComponent({
         return;
       }
       await nextTick();
+      await afterPaint();
       measure();
       watchViewport();
       void load(page.value);

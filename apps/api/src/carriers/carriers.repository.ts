@@ -16,6 +16,17 @@ export class CarriersRepository {
     return this.db.select().from(carriers).where(eq(carriers.id, id)).then((rows) => rows[0]);
   }
 
+  findByName(name: string) {
+    return this.db.select().from(carriers).where(eq(carriers.name, name)).then((rows) => rows[0]);
+  }
+
+  async ensureDefaults(rows: readonly { name: string; sortOrder: number }[] = []) {
+    for (const row of rows) {
+      if (await this.findByName(row.name)) continue;
+      await this.create({ name: row.name, sortOrder: row.sortOrder, active: true });
+    }
+  }
+
   create(input: { name: string; sortOrder?: number; active?: boolean }) {
     return this.db.insert(carriers).values(input).returning().then((rows) => rows[0]);
   }

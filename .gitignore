@@ -15,6 +15,7 @@ apps/api/drizzle/*.sql
 !apps/api/drizzle/0005_drop_display_name.sql
 !apps/api/drizzle/0006_audit_events.sql
 !apps/api/drizzle/0007_audit_detail.sql
+!apps/api/drizzle/0008_default_carriers.sql
 !apps/api/drizzle/meta/
 apps/admin/dist
 apps/dashboard/dist

@@ -1,7 +1,7 @@
 <script lang="ts">
 import { computed, defineComponent, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import type { Carrier } from "@nuri/shared";
+import { isDefaultCarrier, type Carrier } from "@nuri/shared";
 import { api } from "../api";
 import { leaveIfAuth } from "../lib/leave";
 import DirPage from "../components/DirPage.vue";
@@ -108,6 +108,7 @@ export default defineComponent({
       add,
       toggle,
       drop,
+      isDefaultCarrier,
       search: () => dir.search(() => {
         dir.page.value = 1;
       }),
@@ -170,7 +171,7 @@ export default defineComponent({
                   >
                     {{ row.active ? "숨기기" : "표시" }}
                   </button>
-                  <RowDrop @click="drop(row)" />
+                  <RowDrop v-if="!isDefaultCarrier(row.name)" @click="drop(row)" />
                 </div>
               </article>
             </div>
