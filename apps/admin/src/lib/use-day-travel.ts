@@ -32,7 +32,7 @@ export const useDayTravel = (
   const fitStage = () => {
     const host = stage.value;
     if (!host) return;
-    const panes = [...host.querySelectorAll<HTMLElement>(".day-pane")];
+    const panes = Array.from(host.querySelectorAll<HTMLElement>(".day-pane"));
     if (!panes.length) {
       host.style.height = "";
       return;

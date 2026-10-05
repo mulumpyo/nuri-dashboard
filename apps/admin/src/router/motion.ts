@@ -11,7 +11,8 @@ export type MenuPath = (typeof MENU)[number]["to"];
 export const isAuth = (path: string) =>
   path.startsWith("/login") || path.startsWith("/invite") || path.startsWith("/recover");
 
-export const menuList = (canManageUsers = true) => MENU.filter((item) => !item.users || canManageUsers);
+export const menuList = (canManageUsers = true) =>
+  MENU.filter((item) => !("users" in item && item.users) || canManageUsers);
 
 export const menuMatch = (path: string, to: string) => (to === "/" ? path === "/" : path.startsWith(to));
 

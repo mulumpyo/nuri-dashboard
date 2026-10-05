@@ -7,7 +7,7 @@ const nameOf = (el: Element) => {
   }
   if (labelled) return el.getAttribute("aria-label")?.trim() ?? labelled;
   if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-    if (el.labels?.length) return [...el.labels].map((row) => row.textContent?.trim() ?? "").join(" ");
+    if (el.labels?.length) return Array.from(el.labels).map((row) => row.textContent?.trim() ?? "").join(" ");
     return el.getAttribute("placeholder")?.trim() ?? el.getAttribute("title")?.trim() ?? "";
   }
   if (el instanceof HTMLImageElement) return el.getAttribute("alt")?.trim() ?? "";

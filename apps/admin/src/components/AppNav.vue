@@ -23,7 +23,9 @@ export default defineComponent({
 
     const current = computed(() => route.path);
     const items = computed(() =>
-      MENU.filter((item) => !item.users || me.value?.canManageUsers).filter((item) => !item.trail),
+      MENU.filter((item) => !("users" in item && item.users) || me.value?.canManageUsers).filter(
+        (item) => !("trail" in item && item.trail),
+      ),
     );
     const on = (to: string) => menuMatch(current.value, to);
 
