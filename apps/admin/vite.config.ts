@@ -8,6 +8,13 @@ export default defineConfig({
   server: {
     ...publicDevServer,
     port: 5173,
-    proxy: apiProxy,
+    proxy: {
+      ...apiProxy,
+      "/display": {
+        target: "http://127.0.0.1:5174",
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
 });

@@ -1,4 +1,5 @@
 import { Injectable, OnModuleInit } from "@nestjs/common";
+import { isStamp } from "../domain/calendar";
 import { hashPassword, PASSWORD_MAX, PASSWORD_MIN } from "../domain/password";
 import { conflict, forbidden, notFound, unauthorized } from "../common/errors";
 import { AuthRepository } from "./auth.repository";
@@ -80,7 +81,15 @@ export class AuthAccountsService implements OnModuleInit {
       totpRequired,
       canManageTotp: this.isBootstrap(user.email),
       canManageUsers: this.canManageUsers(user),
+      bootstrap: this.isBootstrap(user.email),
     };
+  }
+
+  async previewToday(claims?: AccessClaims, asOf?: string) {
+    if (!isStamp(asOf) || !claims || claims.kind !== "admin") return undefined;
+    const user = await this.users.findById(claims.sub);
+    if (!user || !this.isBootstrap(user.email)) return undefined;
+    return asOf;
   }
 
   canManageUsers(user: { email: string; role: string }) {

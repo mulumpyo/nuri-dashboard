@@ -36,6 +36,7 @@ describe("home register flow", () => {
     resetHolidays();
     vi.mocked(api.get).mockReset();
     vi.mocked(api.post).mockReset();
+    vi.mocked(api.patch).mockReset();
     vi.mocked(api.get).mockImplementation(async (path: string) => {
       if (path.includes("/shipments/board")) return board;
       if (path.includes("/carriers")) return [{ id: "c1", name: "한진", active: true }];
@@ -62,12 +63,37 @@ describe("home register flow", () => {
     const pick = home.getComponent({ name: "CompanyPicker" });
     pick.vm.$emit("pick", { id: "co1", name: "한빛" });
     await flushPromises();
+    expect(home.get("[aria-label='메모']").attributes("placeholder")).toBe("메모");
     expect((home.get("[aria-label='발송 등록']").element as HTMLButtonElement).disabled).toBe(false);
     await home.get("[aria-label='발송 등록']").trigger("click");
     await flushPromises();
     expect(api.post).toHaveBeenCalledWith("/api/shipments", expect.objectContaining({
       companyId: "co1",
       companyName: "한빛",
+    }));
+    home.unmount();
+  });
+
+  it("registers from the memo field on Enter", async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: "/", component: HomeView }],
+    });
+    await router.push("/");
+    await router.isReady();
+    const home = mount(HomeView, { global: { plugins: [router] } });
+    await flushPromises();
+    home.getComponent({ name: "CompanyPicker" }).vm.$emit("pick", { id: "co1", name: "한빛" });
+    await flushPromises();
+    const memo = home.get("[aria-label='메모']");
+    await memo.setValue("7일건");
+    await memo.trigger("keydown", { key: "Enter", isComposing: true, keyCode: 229 });
+    expect(api.post).not.toHaveBeenCalled();
+    await memo.trigger("keydown", { key: "Enter" });
+    await flushPromises();
+    expect(api.post).toHaveBeenCalledWith("/api/shipments", expect.objectContaining({
+      companyId: "co1",
+      note: "7일건",
     }));
     home.unmount();
   });
@@ -97,5 +123,30 @@ describe("home register flow", () => {
     expect(home.find("[aria-label='발송 등록']").exists()).toBe(false);
     home.unmount();
     vi.unstubAllGlobals();
+  });
+
+  it("edits a card memo in a dialog", async () => {
+    vi.mocked(api.patch).mockReset();
+    vi.mocked(api.patch).mockResolvedValue({ id: "s1" });
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: "/", component: HomeView }],
+    });
+    await router.push("/");
+    await router.isReady();
+    const home = mount(HomeView, { global: { plugins: [router] }, attachTo: document.body });
+    await flushPromises();
+    await home.get("[aria-label='한빛 메모 추가']").trigger("click");
+    await flushPromises();
+    expect(document.getElementById("form-title")?.textContent).toBe("메모 추가");
+    const field = document.querySelector<HTMLInputElement>("[aria-label='바꿀 메모']");
+    expect(field).toBeTruthy();
+    field!.value = "7일건";
+    field!.dispatchEvent(new Event("input", { bubbles: true }));
+    await flushPromises();
+    document.querySelector<HTMLButtonElement>(".form-card [type='submit']")?.click();
+    await flushPromises();
+    expect(api.patch).toHaveBeenCalledWith("/api/shipments/s1", { note: "7일건" });
+    home.unmount();
   });
 });

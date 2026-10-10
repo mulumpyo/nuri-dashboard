@@ -4,6 +4,7 @@ import {
   DEFAULT_CARRIERS,
   PAY_TYPES,
   carrierNeedsTime,
+  pinLeadCarrier,
   deviceTag,
   isDefaultCarrier,
   nextShipTime,
@@ -15,7 +16,12 @@ describe("shared catalog", () => {
   it("keeps board and pay contracts", () => {
     expect(BOARD_DAYS).toBe(4);
     expect(PAY_TYPES).toEqual(["prepaid", "collect"]);
-    expect(DEFAULT_CARRIERS.map((row) => row.name)).toEqual(["CJ", "경기택배", "퀵발송"]);
+    expect(DEFAULT_CARRIERS.map((row) => row.name)).toEqual(["경기택배", "CJ", "퀵발송"]);
+    expect(pinLeadCarrier([{ name: "CJ" }, { name: "퀵발송" }, { name: "경기택배" }]).map((row) => row.name)).toEqual([
+      "경기택배",
+      "CJ",
+      "퀵발송",
+    ]);
     expect(isDefaultCarrier("퀵발송")).toBe(true);
     expect(isDefaultCarrier("한진")).toBe(false);
     expect(carrierNeedsTime("서울퀵")).toBe(true);

@@ -63,10 +63,19 @@ export const shipments = pgTable(
     boxCount: integer("box_count").notNull(),
     payType: text("pay_type").notNull().default("prepaid"),
     shipTime: text("ship_time"),
+    note: text("note").notNull().default(""),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [unique("shipments_day_company_carrier_pay").on(t.companyId, t.carrierId, t.shipDate, t.payType)],
+  (t) => [
+    unique("shipments_day_company_carrier_pay_note").on(
+      t.companyId,
+      t.carrierId,
+      t.shipDate,
+      t.payType,
+      t.note,
+    ),
+  ],
 );
 
 export const holidays = pgTable("holidays", {

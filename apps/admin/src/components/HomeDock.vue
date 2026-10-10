@@ -63,12 +63,18 @@ export default defineComponent({
       overlay.picker = false;
     });
 
+    const onNoteEnter = (event: KeyboardEvent) => {
+      if (event.isComposing || event.keyCode === 229) return;
+      void props.board.save();
+    };
+
     return {
       ...props.board,
       foldable,
       folded,
       toggle,
       dock,
+      onNoteEnter,
       carrierRail: carrierPill.rail,
       carrierButtons: carrierPill.buttons,
       carrierPillOn: carrierPill.pillOn,
@@ -148,6 +154,18 @@ export default defineComponent({
       <div v-if="needsTime" class="pills chips time-row">
         <TimePicker v-model="shipTime" />
       </div>
+      <label class="search-field dock-note">
+        <input
+          v-model="note"
+          class="field"
+          type="text"
+          maxlength="40"
+          placeholder="메모"
+          aria-label="메모"
+          autocomplete="off"
+          @keydown.enter.prevent="onNoteEnter"
+        />
+      </label>
       <button
         class="pressable dir-add dock-add"
         type="button"

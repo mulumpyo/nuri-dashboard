@@ -1,15 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { formatDay, parseDay } from "./day";
+import { addDays, isWeekend, shiftBusinessDay } from "./day";
 
-describe("admin day helpers", () => {
-  it("formats a local date as ISO day", () => {
-    expect(formatDay(new Date(2026, 8, 30))).toBe("2026-09-30");
+describe("shiftBusinessDay", () => {
+  it("skips weekends", () => {
+    expect(isWeekend("2026-10-03")).toBe(true);
+    expect(shiftBusinessDay("2026-10-02", 1)).toBe("2026-10-05");
+    expect(shiftBusinessDay("2026-10-05", -1)).toBe("2026-10-02");
   });
 
-  it("parses an ISO day back to local midnight", () => {
-    const parsed = parseDay("2026-10-03");
-    expect(parsed.getFullYear()).toBe(2026);
-    expect(parsed.getMonth()).toBe(9);
-    expect(parsed.getDate()).toBe(3);
+  it("skips holidays", () => {
+    expect(shiftBusinessDay("2026-10-05", 1, ["2026-10-06"])).toBe("2026-10-07");
+  });
+
+  it("steps past a four-day window", () => {
+    let cursor = "2026-10-05";
+    for (let i = 0; i < 6; i++) cursor = shiftBusinessDay(cursor, 1);
+    expect(cursor).toBe("2026-10-13");
+    expect(addDays("2026-10-05", 8)).toBe("2026-10-13");
   });
 });

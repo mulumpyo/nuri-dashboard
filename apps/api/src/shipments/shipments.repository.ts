@@ -31,12 +31,13 @@ export class ShipmentsRepository {
     boxCount: number;
     payType: string;
     shipTime: string | null;
+    note: string;
   }) {
     return this.db
       .insert(shipments)
       .values(input)
       .onConflictDoUpdate({
-        target: [shipments.companyId, shipments.carrierId, shipments.shipDate, shipments.payType],
+        target: [shipments.companyId, shipments.carrierId, shipments.shipDate, shipments.payType, shipments.note],
         set: {
           boxCount: sql`${shipments.boxCount} + excluded.box_count`,
           shipTime: sql`excluded.ship_time`,
@@ -74,6 +75,47 @@ export class ShipmentsRepository {
       .then((rows) => rows[0]);
   }
 
+  updateNote(id: string, note: string) {
+    return this.db.transaction(async (tx) => {
+      const row = await tx.select().from(shipments).where(eq(shipments.id, id)).then((rows) => rows[0]);
+      if (!row) return undefined;
+      if (row.note === note) return row;
+      const twin = await tx
+        .select()
+        .from(shipments)
+        .where(
+          and(
+            eq(shipments.companyId, row.companyId),
+            eq(shipments.carrierId, row.carrierId),
+            eq(shipments.shipDate, row.shipDate),
+            eq(shipments.payType, row.payType),
+            eq(shipments.note, note),
+          ),
+        )
+        .then((rows) => rows[0]);
+      if (twin && twin.id !== row.id) {
+        const kept = await tx
+          .update(shipments)
+          .set({
+            boxCount: twin.boxCount + row.boxCount,
+            shipTime: twin.shipTime ?? row.shipTime,
+            updatedAt: new Date(),
+          })
+          .where(eq(shipments.id, twin.id))
+          .returning()
+          .then((rows) => rows[0]);
+        await tx.delete(shipments).where(eq(shipments.id, row.id));
+        return kept;
+      }
+      return tx
+        .update(shipments)
+        .set({ note, updatedAt: new Date() })
+        .where(eq(shipments.id, id))
+        .returning()
+        .then((rows) => rows[0]);
+    });
+  }
+
   remove(id: string) {
     return this.db.delete(shipments).where(eq(shipments.id, id)).returning().then((rows) => rows[0]);
   }
@@ -92,6 +134,7 @@ export class ShipmentsRepository {
         boxCount: shipments.boxCount,
         payType: shipments.payType,
         shipTime: shipments.shipTime,
+        note: shipments.note,
         companyName: companies.name,
       })
       .from(shipments)

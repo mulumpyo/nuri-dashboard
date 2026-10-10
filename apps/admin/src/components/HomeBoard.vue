@@ -1,12 +1,13 @@
 <script lang="ts">
-import { defineComponent, onActivated, onMounted, onUnmounted, watch } from "vue";
+import { defineComponent, onActivated, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import type { SsePayload } from "@nuri/shared";
 import { carrierNeedsTime, PAY_TYPE_LABEL, PAY_TYPES } from "@nuri/shared";
 import { connectEvents } from "@nuri/shared/sse";
 import CardRail from "./CardRail.vue";
 import Chevron from "./Chevron.vue";
-import DatePicker from "./DatePicker.vue";
+import DatePicker from "@nuri/ui/DatePicker.vue";
+import FormDialog from "./FormDialog.vue";
 import HomeDock from "./HomeDock.vue";
 import SegControl from "./SegControl.vue";
 import Skeleton from "./Skeleton.vue";
@@ -17,7 +18,7 @@ import { useHomeBoard } from "../lib/use-home-board";
 
 export default defineComponent({
   name: "HomeBoard",
-  components: { CardRail, Chevron, DatePicker, HomeDock, SegControl, Skeleton, TimePicker },
+  components: { CardRail, Chevron, DatePicker, FormDialog, HomeDock, SegControl, Skeleton, TimePicker },
   setup() {
     const router = useRouter();
     const home = useHomeBoard(() => router.replace("/login"));
@@ -45,8 +46,80 @@ export default defineComponent({
       if (payload.type === "shipment.changed" || payload.type === "day.boundary") void home.load();
     };
 
+    const nameTip = ref<{
+      text: string;
+      left: number;
+      top: number;
+      below: boolean;
+      maxWidth: number;
+      out?: boolean;
+    } | null>(null);
+    let nameTipTimer: ReturnType<typeof setTimeout> | undefined;
+    const hideName = () => {
+      if (nameTipTimer) clearTimeout(nameTipTimer);
+      nameTipTimer = undefined;
+      const cur = nameTip.value;
+      if (!cur || cur.out) return;
+      nameTip.value = { ...cur, out: true };
+      nameTipTimer = setTimeout(() => {
+        nameTip.value = null;
+        nameTipTimer = undefined;
+      }, 200);
+    };
+    const placeName = (el: HTMLElement, name: string) => {
+      if (el.scrollWidth <= el.clientWidth + 1) return false;
+      const box = el.getBoundingClientRect();
+      const pad = 16;
+      const maxWidth = Math.min(320, window.innerWidth - pad * 2);
+      let left = box.left + box.width / 2;
+      left = Math.min(window.innerWidth - pad - maxWidth / 2, Math.max(pad + maxWidth / 2, left));
+      const below = box.top < 64;
+      nameTip.value = {
+        text: name,
+        left,
+        top: below ? box.bottom + 12 : box.top - 12,
+        below,
+        maxWidth,
+      };
+      return true;
+    };
+    const canHoverName = () => window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const previewName = (event: PointerEvent, name: string) => {
+      if (event.pointerType === "touch" || !canHoverName()) return;
+      const el = event.currentTarget as HTMLElement;
+      if (nameTipTimer) clearTimeout(nameTipTimer);
+      if (nameTip.value?.out) nameTip.value = null;
+      nameTipTimer = setTimeout(() => {
+        placeName(el, name);
+      }, 220);
+    };
+    const leaveName = (event: PointerEvent) => {
+      if (event.pointerType === "touch" || !canHoverName()) return;
+      hideName();
+    };
+    const toggleName = (event: MouseEvent, name: string) => {
+      if (canHoverName()) return;
+      const el = event.currentTarget as HTMLElement;
+      if (nameTip.value?.text === name && !nameTip.value.out) {
+        hideName();
+        return;
+      }
+      if (nameTipTimer) clearTimeout(nameTipTimer);
+      if (nameTip.value?.out) nameTip.value = null;
+      if (!placeName(el, name)) return;
+      nameTipTimer = setTimeout(hideName, 2800);
+    };
+    const awayName = (event: PointerEvent) => {
+      if (!nameTip.value || nameTip.value.out) return;
+      const node = event.target;
+      if (node instanceof Element && node.closest(".card-name")) return;
+      hideName();
+    };
+
     let skipActivate = true;
     onMounted(async () => {
+      window.addEventListener("scroll", hideName, true);
+      document.addEventListener("pointerdown", awayName, true);
       if (await home.load()) {
         travel.show(snap());
         stopEvents = connectEvents(onEvent);
@@ -59,7 +132,12 @@ export default defineComponent({
       }
       void home.load();
     });
-    onUnmounted(() => stopEvents?.());
+    onUnmounted(() => {
+      window.removeEventListener("scroll", hideName, true);
+      document.removeEventListener("pointerdown", awayName, true);
+      hideName();
+      stopEvents?.();
+    });
 
     return {
       home,
@@ -68,6 +146,11 @@ export default defineComponent({
       payOptions: PAY_TYPES.map((id) => ({ id, label: PAY_TYPE_LABEL[id] })),
       carrierNeedsTime,
       emptyBoardHint,
+      nameTip,
+      previewName,
+      leaveName,
+      toggleName,
+      hideName,
     };
   },
 });
@@ -97,6 +180,7 @@ export default defineComponent({
             <template #trigger="{ open, toggle, popId }">
               <button
                 class="day-switch-label"
+                :class="{ today: activeDay?.isToday }"
                 type="button"
                 :aria-expanded="open"
                 aria-haspopup="dialog"
@@ -104,7 +188,11 @@ export default defineComponent({
                 aria-label="날짜 선택"
                 @click="toggle"
               >
-                {{ activeDay ? `${activeDay.label} ${activeDay.date.slice(5)}` : "보낼 목록" }}
+                <svg class="cal-icon" viewBox="0 0 20 20" aria-hidden="true">
+                  <rect x="3.2" y="4.5" width="13.6" height="12.2" rx="3.2" fill="none" stroke="currentColor" stroke-width="1.5" />
+                  <path d="M6.2 3.2v2.8M13.8 3.2v2.8M3.2 8.2h13.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                <span>{{ activeDay ? `${activeDay.label} ${activeDay.date.slice(5)}` : "보낼 목록" }}</span>
               </button>
             </template>
           </DatePicker>
@@ -138,7 +226,37 @@ export default defineComponent({
                   <CardRail>
                     <article v-for="row in group.companies" :key="row.shipmentId" class="item company-card" role="listitem">
                       <div class="card-head">
-                        <strong :title="row.name">{{ row.name }}</strong>
+                        <button
+                          class="card-name"
+                          type="button"
+                          :aria-label="row.name"
+                          :aria-expanded="nameTip?.text === row.name && !nameTip.out"
+                          :aria-describedby="nameTip?.text === row.name ? 'name-tip' : undefined"
+                          @pointerenter="previewName($event, row.name)"
+                          @pointerleave="leaveName"
+                          @click="toggleName($event, row.name)"
+                        >{{ row.name }}</button>
+                        <button
+                          class="card-note"
+                          :class="{ add: !row.note }"
+                          type="button"
+                          :aria-label="row.note ? `${row.name} 메모 ${row.note}` : `${row.name} 메모 추가`"
+                          @click="editNote(row)"
+                        >
+                          <span class="card-note-text">{{ row.note || "메모 추가" }}</span>
+                          <span class="card-note-edit" aria-hidden="true">
+                            <svg viewBox="0 0 12 12">
+                              <path
+                                d="M7.85 2.15l2 2-6.2 6.2H1.65V8.35z"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.3"
+                                stroke-linejoin="round"
+                                stroke-linecap="round"
+                              />
+                            </svg>
+                          </span>
+                        </button>
                         <button
                           class="card-drop"
                           type="button"
@@ -189,6 +307,45 @@ export default defineComponent({
       </div>
     </section>
 
+    <Teleport to="body">
+      <div
+        v-if="nameTip"
+        id="name-tip"
+        class="name-tip"
+        :class="{ below: nameTip.below, out: nameTip.out }"
+        role="tooltip"
+        :style="{
+          left: `${nameTip.left}px`,
+          top: `${nameTip.top}px`,
+          maxWidth: `${nameTip.maxWidth}px`,
+        }"
+      >
+        {{ nameTip.text }}
+      </div>
+    </Teleport>
     <HomeDock :board="home" />
+    <FormDialog
+      v-if="noteForm"
+      :title="noteForm.from ? '메모 수정' : '메모 추가'"
+      confirm-label="저장"
+      :busy="noteBusy"
+      @cancel="closeNote"
+      @confirm="saveNote"
+    >
+      <label class="form-field">
+        <span class="caption">메모</span>
+        <span class="field-shell">
+          <input
+            v-model="noteDraft"
+            class="field"
+            type="text"
+            maxlength="40"
+            aria-label="바꿀 메모"
+            placeholder="메모"
+            autocomplete="off"
+          />
+        </span>
+      </label>
+    </FormDialog>
   </div>
 </template>

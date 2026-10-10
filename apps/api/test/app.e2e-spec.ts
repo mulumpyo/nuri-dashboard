@@ -103,6 +103,7 @@ import { cookieOf, hasInfra, sweepE2e } from "./helpers";
       responses?: Record<string, { content?: Record<string, unknown> }>;
     };
     expect(board.parameters?.some((row) => row.name === "from")).toBe(true);
+    expect(board.parameters?.some((row) => row.name === "asOf")).toBe(true);
     expect(board.responses?.["200"]?.content?.["application/json"]).toBeTruthy();
     const companies = document.paths?.["/api/companies"]?.get as {
       parameters?: { name?: string }[];
@@ -121,9 +122,19 @@ import { cookieOf, hasInfra, sweepE2e } from "./helpers";
     const shipRef = createShip.requestBody?.content?.["application/json"]?.schema?.$ref ?? "";
     const shipName = shipRef.split("/").at(-1) ?? "";
     const shipDto = document.components?.schemas?.[shipName] as {
-      properties?: { carrierId?: { description?: string } };
+      properties?: { carrierId?: { description?: string }; note?: { description?: string }; shipTime?: { description?: string } };
     };
     expect(shipDto.properties?.carrierId?.description).toMatch(/택배사/);
+    expect(shipDto.properties?.note?.description).toMatch(/메모/);
+    expect(shipDto.properties?.shipTime?.description).toMatch(/없어도/);
+    const boardCompany = document.components?.schemas?.BoardCompanyDto as {
+      properties?: { note?: { description?: string } };
+    };
+    expect(boardCompany.properties?.note?.description).toMatch(/메모/);
+    const shipmentRow = document.components?.schemas?.ShipmentRowDto as {
+      properties?: { note?: { description?: string } };
+    };
+    expect(shipmentRow.properties?.note?.description).toMatch(/메모/);
     const login = document.paths?.["/api/auth/login"]?.post as {
       description?: string;
       responses?: Record<string, unknown>;
@@ -135,6 +146,19 @@ import { cookieOf, hasInfra, sweepE2e } from "./helpers";
     expect(issued.properties?.expiresIn).toBeTruthy();
     const createTalk = document.paths?.["/api/shipments"]?.post as { description?: string };
     expect(createTalk.description).toMatch(/결제/);
+    expect(createTalk.description).toMatch(/메모/);
+    const patchTalk = document.paths?.["/api/shipments/{id}"]?.patch as { description?: string };
+    expect(patchTalk.description).toMatch(/메모/);
+    const patchRef = (document.paths?.["/api/shipments/{id}"]?.patch as {
+      requestBody?: { content?: { "application/json"?: { schema?: { $ref?: string } } } };
+    }).requestBody?.content?.["application/json"]?.schema?.$ref ?? "";
+    const patchDto = document.components?.schemas?.[patchRef.split("/").at(-1) ?? ""] as {
+      properties?: { note?: { description?: string } };
+    };
+    expect(patchDto.properties?.note?.description).toMatch(/메모/);
+    const boardTalk = document.paths?.["/api/shipments/board"]?.get as { description?: string };
+    expect(boardTalk.description).toMatch(/메모/);
+    expect(boardTalk.description).toMatch(/asOf/);
     const holidaysSync = document.paths?.["/api/holidays/sync"]?.post as { description?: string };
     expect(holidaysSync.description).toMatch(/쉬는/);
     const rename = document.paths?.["/api/companies/{id}"]?.patch as { description?: string; summary?: string };
@@ -247,7 +271,7 @@ import { cookieOf, hasInfra, sweepE2e } from "./helpers";
     expect(board.headers["x-request-id"]).toBeTruthy();
   });
 
-  it("requires and shows ship time for 퀵발송", async () => {
+  it("lets 퀵발송 skip a time and splits notes", async () => {
     const created = await request(app.getHttpServer())
       .post("/api/carriers")
       .set(auth)
@@ -256,25 +280,34 @@ import { cookieOf, hasInfra, sweepE2e } from "./helpers";
     const carrierId = created.body.id as string;
     const companyName = `한빛상사-${stamp()}`;
     await request(app.getHttpServer()).post("/api/companies").set(auth).send({ name: companyName }).expect(201);
-    await request(app.getHttpServer())
+    const skipped = await request(app.getHttpServer())
       .post("/api/shipments")
       .set(auth)
       .send({ companyName, carrierId, shipDate: "2026-09-23", boxCount: 1 })
-      .expect(400);
+      .expect(201);
+    expect(skipped.body.shipTime ?? null).toBeNull();
+    expect(skipped.body.note).toBe("");
     const first = await request(app.getHttpServer())
       .post("/api/shipments")
       .set(auth)
-      .send({ companyName, carrierId, shipDate: "2026-09-23", boxCount: 1, shipTime: "14:30" })
+      .send({ companyName, carrierId, shipDate: "2026-09-23", boxCount: 1, shipTime: "14:30", note: "7일건" })
       .expect(201);
     expect(first.body.shipTime).toBe("14:30");
+    expect(first.body.id).not.toBe(skipped.body.id);
     const again = await request(app.getHttpServer())
       .post("/api/shipments")
       .set(auth)
-      .send({ companyName, carrierId, shipDate: "2026-09-23", boxCount: 2, shipTime: "16:00" })
+      .send({ companyName, carrierId, shipDate: "2026-09-23", boxCount: 2, shipTime: "16:00", note: "7일건" })
       .expect(201);
     expect(again.body.id).toBe(first.body.id);
     expect(again.body.boxCount).toBe(3);
     expect(again.body.shipTime).toBe("16:00");
+    const extra = await request(app.getHttpServer())
+      .post("/api/shipments")
+      .set(auth)
+      .send({ companyName, carrierId, shipDate: "2026-09-23", boxCount: 1, note: "추가발송건" })
+      .expect(201);
+    expect(extra.body.id).not.toBe(first.body.id);
     const patched = await request(app.getHttpServer())
       .patch(`/api/shipments/${first.body.id}`)
       .set(auth)
@@ -282,11 +315,19 @@ import { cookieOf, hasInfra, sweepE2e } from "./helpers";
       .expect(200);
     expect(patched.body.shipTime).toBe("17:30");
     const board = await request(app.getHttpServer()).get("/api/shipments/board?from=2026-09-23").set(auth).expect(200);
-    const found = (board.body.days as { carriers: { companies: { shipTime?: string }[] }[] }[])
+    const rows = (board.body.days as { carriers: { companies: { shipTime?: string; note?: string }[] }[] }[])
       .flatMap((day) => day.carriers)
-      .flatMap((group) => group.companies)
-      .find((row) => row.shipTime === "17:30");
-    expect(found).toBeTruthy();
+      .flatMap((group) => group.companies);
+    expect(rows.some((row) => row.shipTime === "17:30" && row.note === "7일건")).toBe(true);
+    expect(rows.some((row) => row.note === "추가발송건")).toBe(true);
+    const merged = await request(app.getHttpServer())
+      .patch(`/api/shipments/${first.body.id}`)
+      .set(auth)
+      .send({ note: "추가발송건" })
+      .expect(200);
+    expect(merged.body.id).toBe(extra.body.id);
+    expect(merged.body.note).toBe("추가발송건");
+    expect(merged.body.boxCount).toBe(again.body.boxCount + extra.body.boxCount);
   });
 
   it("registers companies and deletes them with their shipments", async () => {
@@ -411,6 +452,12 @@ import { cookieOf, hasInfra, sweepE2e } from "./helpers";
     const deviceAccess = cookieOf(claimed, "access");
     expect(deviceAccess).toBeTruthy();
     await request(app.getHttpServer()).get("/api/shipments/board").set("Cookie", deviceAccess).expect(200);
+    const live = await request(app.getHttpServer()).get("/api/shipments/board").set("Cookie", deviceAccess).expect(200);
+    const spoofed = await request(app.getHttpServer())
+      .get("/api/shipments/board?asOf=1999-01-04")
+      .set("Cookie", deviceAccess)
+      .expect(200);
+    expect(spoofed.body.from).toBe(live.body.from);
     await request(app.getHttpServer()).get("/api/auth/me").set("Cookie", deviceAccess).expect(200);
     await request(app.getHttpServer()).get("/api/devices").set("Cookie", deviceAccess).expect(403);
     await request(app.getHttpServer())
@@ -462,6 +509,13 @@ import { cookieOf, hasInfra, sweepE2e } from "./helpers";
     expect(me.body.totpRequired).toBe(false);
     expect(me.body.canManageTotp).toBe(false);
     expect(me.body.canManageUsers).toBe(false);
+    expect(me.body.bootstrap).toBe(false);
+    const invitedBoard = await request(app.getHttpServer()).get("/api/shipments/board").set("Cookie", access).expect(200);
+    const invitedSpoof = await request(app.getHttpServer())
+      .get("/api/shipments/board?asOf=1999-01-04")
+      .set("Cookie", access)
+      .expect(200);
+    expect(invitedSpoof.body.from).toBe(invitedBoard.body.from);
     await request(app.getHttpServer()).get("/api/auth/users").set("Cookie", access).expect(403);
     await request(app.getHttpServer()).get("/api/auth/activity").set("Cookie", access).expect(403);
     await request(app.getHttpServer()).post("/api/auth/invites").set("Cookie", access).send({ email: `no-${stamp()}@nuri.test` }).expect(403);
@@ -539,6 +593,15 @@ import { cookieOf, hasInfra, sweepE2e } from "./helpers";
     const boot = cookieOf(created, "access");
     const me = await request(app.getHttpServer()).get("/api/auth/me").set("Cookie", boot).expect(200);
     expect(me.body.canManageUsers).toBe(true);
+    expect(me.body.bootstrap).toBe(true);
+    const preview = await request(app.getHttpServer())
+      .get("/api/shipments/board?asOf=2026-10-08")
+      .set("Cookie", boot)
+      .expect(200);
+    expect(preview.body.from).toBe("2026-10-08");
+    expect((preview.body.days as { date: string; isToday: boolean }[]).find((day) => day.isToday)?.date).toBe(
+      "2026-10-08",
+    );
     await request(app.getHttpServer()).get("/api/auth/users").set(auth).expect(200);
     await request(app.getHttpServer()).delete(`/api/auth/users/${me.body.id}`).set(auth).expect(409);
 

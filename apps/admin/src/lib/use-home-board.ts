@@ -1,9 +1,10 @@
 import { computed, onUnmounted, ref, watch } from "vue";
 import type { BoardDay, BoardResponse, Carrier, PayType } from "@nuri/shared";
-import { carrierNeedsTime, nextShipTime, PAY_TYPE_LABEL, PAY_TYPES } from "@nuri/shared";
+import { carrierNeedsTime, LEAD_CARRIER, PAY_TYPE_LABEL, PAY_TYPES, pinLeadCarrier } from "@nuri/shared";
 import { api, isUnauthorized } from "../api";
 import { boardTitle as titleForDay, composeLabel as dockLabel } from "./board-copy";
 import { usePrompt, useToast } from "./chrome";
+import { kstToday, shiftBusinessDay } from "./day";
 import { holidayDates, loadHolidays } from "./home-holidays";
 
 const loaders = new Set<() => Promise<boolean>>();
@@ -35,6 +36,10 @@ export const useHomeBoard = (onGone: () => Promise<unknown>) => {
   const pickerOpen = ref(false);
   const payType = ref<PayType>("prepaid");
   const shipTime = ref("");
+  const note = ref("");
+  const noteForm = ref<{ id: string; name: string; from: string } | null>(null);
+  const noteDraft = ref("");
+  const noteBusy = ref(false);
   const busy = ref(false);
 
   const selectedCarrier = computed(() => carriers.value.find((row) => row.id === carrierId.value));
@@ -42,12 +47,12 @@ export const useHomeBoard = (onGone: () => Promise<unknown>) => {
 
   const selectedDay = (): BoardDay | undefined => board.value?.days.find((day) => day.date === date.value);
   const activeDay = computed(() => selectedDay());
-  const dayIndex = computed(() => board.value?.days.findIndex((day) => day.date === date.value) ?? -1);
-  const canPrevDay = computed(() => dayIndex.value > 0);
-  const canNextDay = computed(() => {
-    const days = board.value?.days ?? [];
-    return dayIndex.value >= 0 && dayIndex.value < days.length - 1;
+  const canPrevDay = computed(() => {
+    if (!date.value) return false;
+    const prev = shiftBusinessDay(date.value, -1, holidayDates.value);
+    return Boolean(prev && prev >= kstToday());
   });
+  const canNextDay = computed(() => Boolean(date.value && shiftBusinessDay(date.value, 1, holidayDates.value)));
   const hasRows = computed(
     () => activeDay.value?.carriers.some((group) => group.companies.length) ?? false,
   );
@@ -60,19 +65,20 @@ export const useHomeBoard = (onGone: () => Promise<unknown>) => {
       carrier: selectedCarrier.value?.name,
       payType: payType.value,
       time: needsTime.value && shipTime.value ? shipTime.value : "",
+      note: note.value,
     });
   });
 
   const accept = (nextBoard: BoardResponse, nextCarriers: Carrier[]) => {
     board.value = nextBoard;
-    carriers.value = nextCarriers.filter((row) => row.active);
+    carriers.value = pinLeadCarrier(nextCarriers.filter((row) => row.active));
     if (!date.value || !nextBoard.days.some((day) => day.date === date.value)) {
       date.value = nextBoard.days[0]?.date ?? "";
     }
     if (!carrierId.value || !carriers.value.some((row) => row.id === carrierId.value)) {
-      carrierId.value = carriers.value[0]?.id ?? "";
+      carrierId.value =
+        carriers.value.find((row) => row.name === LEAD_CARRIER)?.id ?? carriers.value[0]?.id ?? "";
     }
-    if (needsTime.value && !shipTime.value) shipTime.value = nextShipTime();
   };
 
   const load = async () => {
@@ -92,16 +98,13 @@ export const useHomeBoard = (onGone: () => Promise<unknown>) => {
   };
   onUnmounted(registerBoardLoader(load));
 
-  const canAdd = computed(
-    () => Boolean(company.value && carrierId.value && (!needsTime.value || shipTime.value) && !busy.value),
-  );
+  const canAdd = computed(() => Boolean(company.value && carrierId.value && !busy.value));
 
   const save = async () => {
     const target = company.value;
     if (!canAdd.value || !target) {
       if (!company.value) say("업체를 골라 주세요");
       else if (!carrierId.value) say("택배사를 골라 주세요");
-      else if (needsTime.value && !shipTime.value) say("퀵발송은 시간을 골라 주세요");
       return;
     }
     busy.value = true;
@@ -113,10 +116,12 @@ export const useHomeBoard = (onGone: () => Promise<unknown>) => {
         shipDate: date.value,
         boxCount: 1,
         payType: payType.value,
-        ...(needsTime.value ? { shipTime: shipTime.value } : {}),
+        note: note.value.trim(),
+        ...(needsTime.value && shipTime.value ? { shipTime: shipTime.value } : {}),
       });
       say("추가했어요");
       company.value = null;
+      note.value = "";
       if (!board.value?.days.some((day) => day.date === date.value)) from.value = date.value;
       await load();
     } catch (err) {
@@ -160,6 +165,38 @@ export const useHomeBoard = (onGone: () => Promise<unknown>) => {
     }
   };
 
+  const editNote = (row: { shipmentId: string; name: string; note?: string }) => {
+    const from = row.note ?? "";
+    noteForm.value = { id: row.shipmentId, name: row.name, from };
+    noteDraft.value = from;
+  };
+
+  const closeNote = () => {
+    if (noteBusy.value) return;
+    noteForm.value = null;
+  };
+
+  const saveNote = async () => {
+    const form = noteForm.value;
+    if (!form || noteBusy.value) return;
+    const next = noteDraft.value.trim().slice(0, 40);
+    if (next === form.from) {
+      noteForm.value = null;
+      return;
+    }
+    noteBusy.value = true;
+    try {
+      const saved = await api.patch<{ id: string }>(`/api/shipments/${form.id}`, { note: next });
+      if (saved.id !== form.id) say("같은 메모가 있어 수량을 합쳤어요");
+      noteForm.value = null;
+      await load();
+    } catch (err) {
+      say(err instanceof Error ? err.message : "다시 시도해 주세요");
+    } finally {
+      noteBusy.value = false;
+    }
+  };
+
   const remove = (id: string, name: string) => {
     ask({
       title: "이 발송을 삭제할까요?",
@@ -183,15 +220,12 @@ export const useHomeBoard = (onGone: () => Promise<unknown>) => {
   };
 
   const stepDay = (dir: -1 | 1) => {
-    const days = board.value?.days ?? [];
-    const next = days[dayIndex.value + dir];
+    if (!date.value) return;
+    const next = shiftBusinessDay(date.value, dir, holidayDates.value);
     if (!next) return;
-    date.value = next.date;
+    if (dir < 0 && next < kstToday()) return;
+    pickDay(next);
   };
-
-  watch(needsTime, (on) => {
-    if (on && !shipTime.value) shipTime.value = nextShipTime();
-  });
 
   watch(
     boardTitle,
@@ -210,6 +244,10 @@ export const useHomeBoard = (onGone: () => Promise<unknown>) => {
     pickerOpen,
     payType,
     shipTime,
+    note,
+    noteForm,
+    noteDraft,
+    noteBusy,
     needsTime,
     PAY_TYPES,
     PAY_TYPE_LABEL,
@@ -228,6 +266,9 @@ export const useHomeBoard = (onGone: () => Promise<unknown>) => {
     patch,
     patchPay,
     patchTime,
+    editNote,
+    closeNote,
+    saveNote,
     remove,
     look,
     pickDay,

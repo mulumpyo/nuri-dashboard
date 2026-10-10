@@ -8,6 +8,7 @@ export type HomeMe = {
   totpRequired?: boolean;
   canManageTotp?: boolean;
   canManageUsers?: boolean;
+  bootstrap?: boolean;
 };
 export type HomePrompt = {
   title: string;

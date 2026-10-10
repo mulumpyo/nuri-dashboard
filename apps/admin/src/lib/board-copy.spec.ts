@@ -18,5 +18,8 @@ describe("board copy", () => {
     expect(composeLabel({ dayText: "수", company: "한빛", carrier: "CJ", payType: "collect", time: "14:30" })).toBe(
       "수 · 한빛 · CJ · 착불 · 14:30",
     );
+    expect(
+      composeLabel({ dayText: "오늘", company: "한빛", carrier: "퀵발송", payType: "prepaid", note: "7일건" }),
+    ).toBe("오늘 · 한빛 · 퀵발송 · 선불 · 7일건");
   });
 });

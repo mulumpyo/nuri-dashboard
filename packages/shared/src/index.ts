@@ -51,13 +51,18 @@ export const SHIP_TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 export const SHIP_HOURS = Array.from({ length: 13 }, (_, i) => i + 8);
 export const SHIP_MINUTES = [0, 30] as const;
 
+export const LEAD_CARRIER = "경기택배";
+
 export const DEFAULT_CARRIERS = [
-  { name: "CJ", sortOrder: 0 },
-  { name: "경기택배", sortOrder: 1 },
+  { name: LEAD_CARRIER, sortOrder: 0 },
+  { name: "CJ", sortOrder: 1 },
   { name: "퀵발송", sortOrder: 2 },
 ] as const;
 
 export const isDefaultCarrier = (name: string) => DEFAULT_CARRIERS.some((row) => row.name === name);
+
+export const pinLeadCarrier = <T extends { name: string }>(rows: readonly T[]) =>
+  [...rows].sort((a, b) => Number(b.name === LEAD_CARRIER) - Number(a.name === LEAD_CARRIER));
 
 export const carrierNeedsTime = (name: string) => name.includes("퀵");
 
@@ -94,6 +99,7 @@ export type BoardCompany = {
   shipmentId: string;
   payType: PayType;
   shipTime: string | null;
+  note: string;
 };
 
 export type BoardCarrier = {

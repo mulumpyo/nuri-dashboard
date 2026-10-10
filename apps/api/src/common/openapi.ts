@@ -83,6 +83,14 @@ export const ApiFromQuery = () =>
     description: "이 날짜부터 영업일을 보여 줘요. 비우면 오늘부터예요",
   });
 
+export const ApiAsOfQuery = () =>
+  ApiQuery({
+    name: "asOf",
+    required: false,
+    example: "2026-10-10",
+    description: "최초 관리자가 오늘을 이 날짜로 보고 싶을 때 넣어요. 화면 기기와 초대받은 관리자는 무시돼요",
+  });
+
 export const ApiSearchQuery = () =>
   ApiQuery({ name: "q", required: false, example: "한빛", description: "이름 일부로 찾아요" });
 
