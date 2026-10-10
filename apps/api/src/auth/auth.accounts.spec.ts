@@ -52,4 +52,22 @@ describe("AuthAccountsService", () => {
       deviceId: "d1",
     });
   });
+
+  it("lets only the bootstrap admin preview another today", async () => {
+    users.findById.mockResolvedValue({ id: "b1", email: "boot@nuri.test", role: "admin" });
+    await expect(service().previewToday({ sub: "b1", kind: "admin" }, "2026-10-10")).resolves.toBe("2026-10-10");
+    users.findById.mockResolvedValue({ id: "a1", email: "invited@nuri.test", role: "admin" });
+    await expect(service().previewToday({ sub: "a1", kind: "admin" }, "2026-10-10")).resolves.toBeUndefined();
+    await expect(service().previewToday({ sub: "d1", kind: "device", deviceId: "d1" }, "2026-10-10")).resolves.toBeUndefined();
+    await expect(service().previewToday({ sub: "b1", kind: "admin" }, "nope")).resolves.toBeUndefined();
+  });
+
+  it("marks bootstrap on me()", async () => {
+    settings.getBool.mockResolvedValue(false);
+    users.findById.mockResolvedValue({ id: "b1", email: "boot@nuri.test", role: "admin" });
+    await expect(service().me({ sub: "b1", kind: "admin" })).resolves.toMatchObject({
+      bootstrap: true,
+      canManageTotp: true,
+    });
+  });
 });

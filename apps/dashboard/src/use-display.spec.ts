@@ -45,6 +45,7 @@ const json = (body: unknown, status = 200) =>
 
 describe("useDisplay", () => {
   beforeEach(() => {
+    window.history.replaceState(null, "", "/display/");
     sse.onPayload = undefined;
     sse.onOpen = undefined;
     sse.onError = undefined;
@@ -58,6 +59,7 @@ describe("useDisplay", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    window.history.replaceState(null, "", "/display/");
   });
 
   it("pairs after a board load and reconnects on SSE open", async () => {
@@ -141,6 +143,62 @@ describe("useDisplay", () => {
     await vi.advanceTimersByTimeAsync(700);
     expect(wrap.vm.slide).toBe(false);
     expect(wrap.vm.flashes.s1).toBeUndefined();
+    wrap.unmount();
+  });
+
+  it("sends asOf only while the bootstrap admin is previewing", async () => {
+    window.history.replaceState(null, "", "/display/?asOf=2026-10-08");
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = String(input);
+      if (url.includes("/shipments/board")) return json(board("2026-10-08"));
+      if (url.includes("/auth/me")) return json({ kind: "admin", bootstrap: true });
+      return json({});
+    });
+    const wrap = mount(Host);
+    await flushPromises();
+    expect(wrap.vm.preview).toBe(true);
+    expect(wrap.vm.asOf).toBe("2026-10-08");
+    expect(vi.mocked(fetch).mock.calls.map(([url]) => String(url))).toEqual(
+      expect.arrayContaining(["/api/shipments/board?asOf=2026-10-08", "/api/auth/me"]),
+    );
+    wrap.unmount();
+  });
+
+  it("applies a date picked in the preview calendar", async () => {
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = String(input);
+      if (url.includes("/shipments/board")) {
+        const asOf = url.includes("asOf=") ? url.slice(url.indexOf("asOf=") + 5) : "2026-10-10";
+        return json(board(asOf));
+      }
+      if (url.includes("/auth/me")) return json({ kind: "admin", bootstrap: true });
+      return json({});
+    });
+    const wrap = mount(Host);
+    await flushPromises();
+    wrap.vm.applyAsOf("2026-10-08");
+    await flushPromises();
+    expect(wrap.vm.asOf).toBe("2026-10-08");
+    expect(window.location.search).toContain("asOf=2026-10-08");
+    expect(vi.mocked(fetch).mock.calls.map(([url]) => String(url))).toEqual(
+      expect.arrayContaining(["/api/shipments/board?asOf=2026-10-08"]),
+    );
+    wrap.unmount();
+  });
+
+  it("drops asOf when the session is a paired screen", async () => {
+    window.history.replaceState(null, "", "/display/?asOf=2026-10-08");
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = String(input);
+      if (url.includes("/shipments/board")) return json(board("2026-10-03"));
+      if (url.includes("/auth/me")) return json({ kind: "device", deviceId: "3f1c0a8e-2d4b-4f1a-9c2e-7b6d5a4c3e21" });
+      return json({});
+    });
+    const wrap = mount(Host);
+    await flushPromises();
+    expect(wrap.vm.preview).toBe(false);
+    expect(wrap.vm.asOf).toBe("");
+    expect(window.location.search).not.toContain("asOf");
     wrap.unmount();
   });
 

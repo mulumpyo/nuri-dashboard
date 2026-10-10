@@ -23,9 +23,10 @@ export const composeLabel = (input: {
   carrier?: string;
   payType: PayType;
   time?: string;
+  note?: string;
 }) => {
   if (!input.dayText) return "보낼 업체 추가";
-  return [input.dayText, input.company, input.carrier, PAY_TYPE_LABEL[input.payType], input.time]
+  return [input.dayText, input.company, input.carrier, PAY_TYPE_LABEL[input.payType], input.time, input.note]
     .filter(Boolean)
     .join(" · ");
 };

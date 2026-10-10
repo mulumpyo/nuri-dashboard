@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 const dir = dirname(fileURLToPath(import.meta.url));
 const glass = readFileSync(join(dir, "glass.css"), "utf8");
 const tokens = readFileSync(join(dir, "tokens.css"), "utf8");
+const cal = readFileSync(join(dir, "cal.css"), "utf8");
 
 const hex = (value: string) => {
   const n = Number.parseInt(value.slice(1), 16);
@@ -40,6 +41,12 @@ describe("shared a11y tokens", () => {
     expect(contrast("#b4bcc8", "#0b0d12")).toBeGreaterThanOrEqual(4.5);
     expect(tokens).toMatch(/--muted:\s*#636366/);
     expect(tokens).toMatch(/--muted:\s*#b4bcc8/);
+  });
+
+  it("keeps the shared date picker chrome", () => {
+    expect(cal).toMatch(/\.cal-pop/);
+    expect(cal).toMatch(/aria-label|날짜 선택|\.cal-day/);
+    expect(cal).toMatch(/cal-in/);
   });
 
   it("shortens motion when the user asks", () => {

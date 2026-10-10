@@ -1,16 +1,38 @@
 <script lang="ts">
 import { computed, defineComponent, nextTick, onUnmounted, ref, watch, type PropType } from "vue";
-import { formatDay, parseDay } from "../lib/day";
-import { trapTab } from "../lib/focus";
-import Chevron from "./Chevron.vue";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-
+const pad = (n: number) => String(n).padStart(2, "0");
+const formatDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseDay = (value: string) => {
+  const [y, m, d] = value.split("-").map(Number);
+  if (!y || !m || !d) return new Date();
+  return new Date(y, m - 1, d);
+};
 const todayStamp = () => formatDay(new Date());
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+const trapTab = (event: KeyboardEvent, root: ParentNode | null) => {
+  if (event.key !== "Tab") return;
+  const nodes = Array.from(root?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []).filter(
+    (el) => el.tabIndex !== -1 && !el.closest("[inert]"),
+  );
+  if (!nodes.length) return;
+  const first = nodes[0]!;
+  const last = nodes[nodes.length - 1]!;
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+};
 
 export default defineComponent({
   name: "DatePicker",
-  components: { Chevron },
   props: {
     modelValue: { type: String, default: "" },
     variant: { type: String, default: "pill" },
@@ -235,7 +257,7 @@ export default defineComponent({
             <rect x="3.2" y="4.5" width="13.6" height="12.2" rx="3.2" fill="none" stroke="currentColor" stroke-width="1.5" />
             <path d="M6.2 3.2v2.8M13.8 3.2v2.8M3.2 8.2h13.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
-          <span>{{ variant === 'pill' ? shortLabel : label }}</span>
+          <span>{{ variant === "pill" ? shortLabel : label }}</span>
         </button>
       </slot>
     </div>
@@ -255,11 +277,29 @@ export default defineComponent({
       >
         <div class="cal-bar">
           <button class="pressable ghost cal-nav" type="button" aria-label="이전 달" @click="shift(-1)">
-            <Chevron />
+            <svg class="chev prev" viewBox="0 0 12 20" aria-hidden="true">
+              <path
+                d="M10 2 2 10l8 8"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
           </button>
           <p class="cal-title">{{ title }}</p>
           <button class="pressable ghost cal-nav" type="button" aria-label="다음 달" @click="shift(1)">
-            <Chevron dir="next" />
+            <svg class="chev next" viewBox="0 0 12 20" aria-hidden="true">
+              <path
+                d="M10 2 2 10l8 8"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
           </button>
         </div>
         <div class="cal-week" aria-hidden="true">

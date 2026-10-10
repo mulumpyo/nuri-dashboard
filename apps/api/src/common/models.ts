@@ -70,6 +70,9 @@ export class ShipmentRowDto {
 
   @ApiPropertyOptional({ example: "14:30", nullable: true, description: "퀵이면 출발 시각이에요" })
   shipTime?: string | null;
+
+  @ApiProperty({ example: "7일건", description: "메모 라벨이에요. 없으면 빈 글이에요" })
+  note: string;
 }
 
 export class BoardCompanyDto {
@@ -90,6 +93,9 @@ export class BoardCompanyDto {
 
   @ApiPropertyOptional({ nullable: true, description: "퀵이면 출발 시각이에요" })
   shipTime?: string | null;
+
+  @ApiProperty({ example: "7일건", description: "메모 라벨이에요. 없으면 빈 글이에요" })
+  note: string;
 }
 
 export class BoardCarrierDto {
@@ -207,6 +213,9 @@ export class MeDto {
 
   @ApiPropertyOptional({ description: "계정을 초대하거나 지울 수 있는지예요" })
   canManageUsers?: boolean;
+
+  @ApiPropertyOptional({ description: "최초 관리자면 true예요" })
+  bootstrap?: boolean;
 
   @ApiPropertyOptional({ description: "화면이면 그 화면 아이디예요" })
   deviceId?: string;

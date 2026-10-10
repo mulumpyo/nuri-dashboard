@@ -3,8 +3,8 @@ import { BOARD_DAYS } from "../domain/constants";
 import type { PayType } from "../domain/pay-type";
 import { carrierNeedsTime, parseShipTime } from "../domain/ship-time";
 import { CarriersService } from "../carriers/carriers.service";
-import { badRequest, conflict, notFound } from "../common/errors";
-import { addDays, collectBusinessDays, dayLabel, kstDate, TIMEZONE } from "../domain/calendar";
+import { conflict, notFound } from "../common/errors";
+import { addDays, collectBusinessDays, dayLabel, isStamp, kstDate, TIMEZONE } from "../domain/calendar";
 import { EventsService } from "../events/events.service";
 import { HolidaysService } from "../holidays/holidays.service";
 import { ShipmentsRepository } from "./shipments.repository";
@@ -30,6 +30,7 @@ export class ShipmentsService {
     boxCount: number;
     payType?: PayType;
     shipTime?: string;
+    note?: string;
   }) {
     const carrier = await this.carriers.find(input.carrierId);
     if (!carrier) throw notFound("CARRIER_NOT_FOUND", "택배사를 찾지 못했어요");
@@ -46,12 +47,13 @@ export class ShipmentsService {
       boxCount: input.boxCount,
       payType,
       shipTime,
+      note: this.noteOf(input.note),
     });
     this.events.publish({ type: "shipment.changed", date: input.shipDate, shipmentId: row.id });
     return row;
   }
 
-  async patch(id: string, input: { boxCount?: number; payType?: PayType; shipTime?: string }) {
+  async patch(id: string, input: { boxCount?: number; payType?: PayType; shipTime?: string; note?: string }) {
     let row = input.boxCount != null ? await this.repo.updateCount(id, input.boxCount) : await this.repo.find(id);
     if (!row) throw notFound("SHIPMENT_NOT_FOUND", "발송 내역이 없어요");
     if (input.payType && input.payType !== row.payType) {
@@ -67,6 +69,14 @@ export class ShipmentsService {
       const shipTime = this.resolveTime(carrier.name, input.shipTime);
       if (shipTime) row = await this.repo.updateShipTime(id, shipTime);
     }
+    if (input.note !== undefined) {
+      const next = this.noteOf(input.note);
+      if (next !== (row.note ?? "")) {
+        const moved = await this.repo.updateNote(row.id, next);
+        if (!moved) throw notFound("SHIPMENT_NOT_FOUND", "발송 내역이 없어요");
+        row = moved;
+      }
+    }
     if (!row) throw notFound("SHIPMENT_NOT_FOUND", "발송 내역이 없어요");
     this.events.publish({ type: "shipment.changed", date: row.shipDate, shipmentId: row.id });
     return row;
@@ -79,14 +89,14 @@ export class ShipmentsService {
     return { status: "ok" };
   }
 
-  async board(from?: string) {
-    const start = from ?? kstDate();
+  async board(from?: string, asOf?: string) {
+    const today = isStamp(asOf) ? asOf : kstDate();
+    const start = from ?? today;
     const holidayRows = await this.holidays.list();
     const holidaySet = new Set(holidayRows.map((row) => row.date));
     const days = collectBusinessDays(start, BOARD_DAYS, holidaySet);
     const last = days[days.length - 1] ?? start;
     const [carrierList, rows] = await Promise.all([this.carriers.list(), this.repo.inRange(days[0] ?? start, last)]);
-    const today = kstDate();
     const tomorrow = addDays(today, 1);
     return {
       from: start,
@@ -98,6 +108,7 @@ export class ShipmentsService {
         isTomorrow: date === tomorrow,
         carriers: carrierList
           .filter((carrier) => carrier.active)
+          .sort((a, b) => Number(b.name === "경기택배") - Number(a.name === "경기택배"))
           .map((carrier) => ({
             carrierId: carrier.id,
             name: carrier.name,
@@ -110,6 +121,7 @@ export class ShipmentsService {
                 boxCount: row.boxCount,
                 payType: row.payType === "collect" ? "collect" : "prepaid",
                 shipTime: row.shipTime ?? null,
+                note: row.note ?? "",
                 shipmentId: row.id,
               })),
           })),
@@ -119,9 +131,10 @@ export class ShipmentsService {
 
   private resolveTime(carrierName: string, value?: string) {
     const shipTime = parseShipTime(value);
-    if (carrierNeedsTime(carrierName) && !shipTime) {
-      throw badRequest("TIME_REQUIRED", "퀵발송은 시간을 골라 주세요");
-    }
     return carrierNeedsTime(carrierName) ? shipTime : null;
+  }
+
+  private noteOf(value?: string) {
+    return (value ?? "").trim().slice(0, 40);
   }
 }

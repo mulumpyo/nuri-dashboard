@@ -1,4 +1,4 @@
-import { addDays, collectBusinessDays, dayLabel, isWeekend, kstDate, weekdayLabel } from "./calendar";
+import { addDays, collectBusinessDays, dayLabel, isStamp, isWeekend, kstDate, weekdayLabel } from "./calendar";
 
 describe("calendar", () => {
   it("marks weekends", () => {
@@ -22,6 +22,13 @@ describe("calendar", () => {
 
   it("adds days", () => {
     expect(addDays("2026-09-30", 1)).toBe("2026-10-01");
+  });
+
+  it("accepts only real calendar stamps", () => {
+    expect(isStamp("2026-10-10")).toBe(true);
+    expect(isStamp("2026-13-40")).toBe(false);
+    expect(isStamp("today")).toBe(false);
+    expect(isStamp("")).toBe(false);
   });
 
   it("formats KST date", () => {

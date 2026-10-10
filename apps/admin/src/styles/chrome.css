@@ -280,6 +280,18 @@
   font: 590 13px / 1 var(--font);
   letter-spacing: -0.02em;
   color: var(--muted);
+  cursor: pointer;
+  transition: color var(--settle), background var(--settle);
+}
+
+.seg-item:not(.on):hover,
+.seg-item:not(.on):focus-visible {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+
+.seg-item:not(.on):active {
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
 }
 
 .seg-item.pressable:active {

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.vue";
 import CompanyPicker from "./components/CompanyPicker.vue";
 import ConfirmDialog from "./components/ConfirmDialog.vue";
-import DatePicker from "./components/DatePicker.vue";
+import DatePicker from "@nuri/ui/DatePicker.vue";
 import DirPage from "./components/DirPage.vue";
 import FormDialog from "./components/FormDialog.vue";
 import PageHead from "./components/PageHead.vue";
@@ -50,7 +50,7 @@ const board = {
         {
           carrierId: "c1",
           name: "한진",
-          companies: [{ shipmentId: "s1", name: "한빛", boxCount: 1, payType: "prepaid" as const }],
+          companies: [{ shipmentId: "s1", name: "한빛", boxCount: 1, payType: "prepaid" as const, note: "7일건" }],
         },
       ],
     },
@@ -122,7 +122,7 @@ describe("admin a11y render", () => {
           total: 1,
         };
       }
-      if (path.includes("/auth/me")) return { kind: "admin", totpRequired: false, canManageTotp: true, canManageUsers: true };
+      if (path.includes("/auth/me")) return { kind: "admin", totpRequired: false, canManageTotp: true, canManageUsers: true, bootstrap: true };
       if (path.includes("/auth/invite") || path.includes("/auth/recovery")) return { status: "ok" };
       if (path.includes("/auth/security")) return { totpRequired: false };
       if (path.includes("/companies")) return { items: [{ id: "co1", name: "한빛" }], page: 1, pages: 1, total: 1 };
@@ -143,6 +143,8 @@ describe("admin a11y render", () => {
     expect(cssText).toMatch(/--card-w:\s*148px/);
     expect(cssText).toMatch(/--page-x:\s*10px/);
     expect(cssText).toMatch(/--dir-gutter:\s*10px/);
+    expect(cssText).toMatch(/card-note-edit/);
+    expect(cssText).toMatch(/grid-template-columns:\s*0fr/);
   });
 
   it("renders a skip link and live toast host", async () => {
@@ -204,6 +206,7 @@ describe("admin a11y render", () => {
     expect(home.get("[aria-label='어제']").exists()).toBe(true);
     expect(home.get("[aria-label='내일']").exists()).toBe(true);
     expect(home.get("[aria-label='날짜 선택']").exists()).toBe(true);
+    expect(home.get("[aria-label='날짜 선택'] .cal-icon").exists()).toBe(true);
     expect(home.get("[aria-label='결제 구분']").exists()).toBe(true);
     expect(home.get("[aria-label='한빛 삭제']").exists()).toBe(true);
     expect(home.get("[role='list']").exists()).toBe(true);
@@ -211,8 +214,13 @@ describe("admin a11y render", () => {
     expect(home.get("[aria-label='택배사 선택']").exists()).toBe(true);
     expect(home.find("[aria-controls='dock-fields']").exists()).toBe(false);
     expect(home.get("[aria-label='발송 등록']").text()).toBe("등록");
+    expect(home.get("[aria-label='메모']").exists()).toBe(true);
+    expect(home.get("[aria-label='메모']").attributes("placeholder")).toBe("메모");
     expect(home.get(".card-grid .company-card").exists()).toBe(true);
-    expect(home.get(".card-grid .company-card strong").attributes("title")).toBe("한빛");
+    expect(home.get(".card-grid .company-card .card-name").text()).toBe("한빛");
+    expect(home.get(".card-grid .company-card .card-name").attributes("aria-label")).toBe("한빛");
+    expect(home.get(".card-note").text()).toContain("7일건");
+    expect(home.get("[aria-label='한빛 메모 7일건']").exists()).toBe(true);
     expect(scanNames(home.element)).toEqual([]);
     home.unmount();
 
@@ -232,6 +240,7 @@ describe("admin a11y render", () => {
     expect(settings.get("#settings-title").text()).toBe("설정");
     expect(settings.get(".set-tag").text()).toBe("3E21");
     expect(settings.get("[aria-label='화면 연결']").exists()).toBe(true);
+    expect(settings.get("[aria-label='디스플레이 미리보기']").attributes("href")).toBe("/display/");
     expect(settings.get("[aria-label='3E21 끊기']").exists()).toBe(true);
     expect(settings.get("#set-log-title").text()).toBe("로그 기록");
     expect(settings.get("[aria-label='로그 보기']").text()).toContain("로그 보기");

@@ -198,6 +198,16 @@ button.set-row {
   font-size: 13px;
 }
 
+.set-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+a.set-action {
+  text-decoration: none;
+}
+
 .set-action:disabled {
   opacity: 0.34;
 }

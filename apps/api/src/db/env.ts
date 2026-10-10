@@ -9,11 +9,11 @@ const candidates = () => [
 ];
 
 export const loadEnv = () => {
-  const path = candidates().find((file) => existsSync(file));
-  if (!path) return;
-  for (const line of readFileSync(path, "utf8").split("\n")) {
-    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
-    if (!match || process.env[match[1]]) continue;
-    process.env[match[1]] = match[2].trim().replace(/^["']|["']$/g, "");
+  for (const path of candidates().filter((file) => existsSync(file))) {
+    for (const line of readFileSync(path, "utf8").split("\n")) {
+      const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+      if (!match || process.env[match[1]]) continue;
+      process.env[match[1]] = match[2].trim().replace(/^["']|["']$/g, "");
+    }
   }
 };

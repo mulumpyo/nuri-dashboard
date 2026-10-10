@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import { deviceTag } from "@nuri/shared";
 import { api } from "../api";
 import Chevron from "../components/Chevron.vue";
-import DatePicker from "../components/DatePicker.vue";
+import DatePicker from "@nuri/ui/DatePicker.vue";
 import FormDialog from "../components/FormDialog.vue";
 import PageHead from "../components/PageHead.vue";
 import { overlay } from "../lib/chrome";
@@ -39,6 +39,10 @@ export default defineComponent({
 
     const openLogs = () => {
       void router.push("/settings/logs");
+    };
+
+    const openPreview = () => {
+      window.location.assign("/display/");
     };
 
     const logout = async () => {
@@ -93,6 +97,7 @@ export default defineComponent({
       closePair,
       confirmPair,
       openLogs,
+      openPreview,
       logout,
       deviceTag,
     };
@@ -107,7 +112,16 @@ export default defineComponent({
     <section class="set-group" aria-labelledby="set-tv-title">
       <div class="set-head">
         <h3 id="set-tv-title">TV 화면</h3>
-        <button class="set-action" type="button" aria-label="화면 연결" @click="openPair">연결</button>
+        <div class="set-actions">
+          <a
+            v-if="me?.bootstrap"
+            class="set-action"
+            href="/display/"
+            aria-label="디스플레이 미리보기"
+            @click.prevent="openPreview"
+          >미리보기</a>
+          <button class="set-action" type="button" aria-label="화면 연결" @click="openPair">연결</button>
+        </div>
       </div>
       <div class="set-card">
         <p v-if="!devices.length" class="set-row set-empty">연결된 화면이 없어요</p>

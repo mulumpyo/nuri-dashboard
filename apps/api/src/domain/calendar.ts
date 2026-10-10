@@ -13,6 +13,13 @@ export const parseDate = (value: string): Date => {
   return new Date(Date.UTC(y, m - 1, d));
 };
 
+export const isStamp = (value?: string | null): value is string => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = parseDate(value);
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+};
+
 export const addDays = (value: string, days: number): string => {
   const date = parseDate(value);
   date.setUTCDate(date.getUTCDate() + days);

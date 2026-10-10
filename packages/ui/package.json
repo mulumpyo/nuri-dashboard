@@ -6,7 +6,12 @@
   "exports": {
     "./tokens.css": "./src/tokens.css",
     "./glass.css": "./src/glass.css",
+    "./cal.css": "./src/cal.css",
+    "./DatePicker.vue": "./src/DatePicker.vue",
     "./fit-text": "./src/fit-text.ts"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.16"
   },
   "scripts": {
     "test": "vitest run"

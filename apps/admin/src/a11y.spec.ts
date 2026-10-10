@@ -34,6 +34,8 @@ describe("admin a11y document", () => {
     expect(dirCss).toMatch(/\.dir-viewport[\s\S]*padding:\s*0 var\(--dir-gutter\) 12px/);
     expect(home).toMatch(/--card-w:\s*148px/);
     expect(home).toMatch(/repeat\(auto-fill,\s*var\(--card-w\)\)/);
+    expect(home).toMatch(/\.card-note-edit[\s\S]*grid-template-columns:\s*0fr/);
+    expect(home).toMatch(/\.card-note:not\(\.add\):hover \.card-note-edit[\s\S]*grid-template-columns:\s*1fr/);
     const chrome = read("styles/chrome.css");
     expect(chrome).toMatch(/:has\(\.set-logs\)/);
   });

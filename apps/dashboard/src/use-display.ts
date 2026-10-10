@@ -1,6 +1,8 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { deviceTag, type BoardResponse, type SsePayload } from "@nuri/shared";
 import { connectEvents } from "@nuri/shared/sse";
+import { formatBoardDate } from "./format-date";
+import { kstStamp, readAsOf, shiftStamp, STAMP, writeAsOf } from "./as-of";
 
 export const useDisplay = () => {
   const board = ref<BoardResponse | null>(null);
@@ -8,24 +10,37 @@ export const useDisplay = () => {
   const code = ref("");
   const hint = ref("아래 코드를 어드민에 입력해 주세요");
   const paired = ref(false);
+  const preview = ref(false);
+  const asOf = ref(readAsOf());
   const live = ref(false);
   const slide = ref(false);
   const flashes = ref<Record<string, boolean>>({});
   const liveHint = ref("");
   let stopEvents: (() => void) | undefined;
   let timer: number | undefined;
+  let known = false;
 
   const tag = computed(() => (deviceId.value ? deviceTag(deviceId.value) : ""));
 
   const remember = async () => {
-    if (deviceId.value) return;
+    if (known) return;
     const res = await fetch("/api/auth/me", { credentials: "include" });
-    if (!res.ok) return;
-    const body = (await res.json()) as { deviceId?: string };
+    if (!res.ok) {
+      preview.value = false;
+      return;
+    }
+    const body = (await res.json()) as { kind?: string; deviceId?: string; bootstrap?: boolean };
     if (body.deviceId) deviceId.value = body.deviceId;
+    preview.value = body.kind === "admin" && Boolean(body.bootstrap);
+    if (!preview.value && asOf.value) {
+      asOf.value = writeAsOf("");
+    }
+    known = true;
   };
 
   const beginPair = async () => {
+    known = false;
+    preview.value = false;
     paired.value = false;
     live.value = false;
     board.value = null;
@@ -38,7 +53,8 @@ export const useDisplay = () => {
   };
 
   const load = async (retried = false) => {
-    const res = await fetch("/api/shipments/board", { credentials: "include" });
+    const query = asOf.value ? `?asOf=${asOf.value}` : "";
+    const res = await fetch(`/api/shipments/board${query}`, { credentials: "include" });
     if (res.status === 401) {
       if (!retried) {
         const refreshed = await fetch("/api/auth/refresh", { method: "POST", credentials: "include" });
@@ -145,6 +161,28 @@ export const useDisplay = () => {
   });
 
   const digits = computed(() => code.value.replace(/\D/g, "").slice(0, 6).padEnd(6, " ").split(""));
+  const asOfCursor = computed(() => asOf.value || kstStamp());
+  const asOfLabel = computed(() => formatBoardDate(asOfCursor.value));
+
+  const applyAsOf = (value: string) => {
+    const next = STAMP.test(value) && value !== kstStamp() ? value : "";
+    if (next === asOf.value) return;
+    asOf.value = writeAsOf(next);
+    void load();
+  };
+
+  const nudgeAsOf = (days: number) => {
+    applyAsOf(shiftStamp(asOfCursor.value, days));
+  };
+
+  const onAsOfInput = (event: Event) => {
+    const value = (event.target as HTMLInputElement).value;
+    applyAsOf(value);
+  };
+
+  const clearAsOf = () => {
+    applyAsOf("");
+  };
 
   const copyCode = (event: ClipboardEvent) => {
     const picked = (window.getSelection()?.toString() ?? "").replace(/\D/g, "");
@@ -154,5 +192,25 @@ export const useDisplay = () => {
     event.clipboardData?.setData("text/plain", value);
   };
 
-  return { board, code, digits, hint, paired, live, liveHint, flashes, slide, tag, copyCode };
+  return {
+    board,
+    code,
+    digits,
+    hint,
+    paired,
+    preview,
+    asOf,
+    asOfCursor,
+    asOfLabel,
+    nudgeAsOf,
+    applyAsOf,
+    onAsOfInput,
+    clearAsOf,
+    live,
+    liveHint,
+    flashes,
+    slide,
+    tag,
+    copyCode,
+  };
 };
