@@ -12,7 +12,7 @@ const chipCap = (el: HTMLElement) => {
   const parent = el.parentElement;
   if (!parent) return 0;
   const gap = Number.parseFloat(getComputedStyle(parent).gap) || 0;
-  const others = [...parent.children].filter((child) => child !== el) as HTMLElement[];
+  const others = Array.from(parent.children).filter((child) => child !== el) as HTMLElement[];
   const used = others.reduce((sum, child) => sum + child.offsetWidth, 0) + gap * others.length;
   return Math.max(0, parent.clientWidth - used);
 };
